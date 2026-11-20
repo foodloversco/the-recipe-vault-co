@@ -264,6 +264,19 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
+          {/* Android Direct APK Download Button in Mobile Menu */}
+          <div className="pb-2">
+            <a
+              href="https://pub-152f26d662d94267bac96bce4bdcd35b.r2.dev/apps/The_Recipe_Vault_Co.apk"
+              download="The_Recipe_Vault_Co.apk"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold bg-[#cf7b3e]/20 text-[#dea374] border border-[#cf7b3e]/40 hover:bg-[#cf7b3e]/30 transition-all active:scale-95 shadow-sm"
+            >
+              <Sparkles className="w-4 h-4 text-[#cf7b3e]" />
+              <span>Download Android App (.apk)</span>
+            </a>
+          </div>
+
           <div className="pt-2 border-t border-[#231f1a] flex items-center justify-between text-xs text-[#9c9388] px-1">
             <a
               href="https://api.whatsapp.com/send?phone=27843441313&text=Hi%20The%20Recipe%20Vault%20Co%20Support%2C%20I%20have%20a%20question%20or%20need%20help"
