@@ -1,0 +1,983 @@
+import React, { useState, useEffect } from 'react';
+import { Book, Bundle, SaleTransaction } from '../../types';
+import { bookStore } from '../../services/bookStore';
+import { salesStore } from '../../services/salesStore';
+import { storageService } from '../../services/storageService';
+import { settingsStore } from '../../services/settingsStore';
+import { 
+  UploadCloud, 
+  DollarSign, 
+  FileText, 
+  Package, 
+  Layers, 
+  TrendingUp, 
+  Settings, 
+  Trash2, 
+  Edit3, 
+  Eye, 
+  Download, 
+  CheckCircle, 
+  ExternalLink, 
+  Plus, 
+  Database, 
+  Server, 
+  Key, 
+  Smartphone, 
+  Globe 
+} from 'lucide-react';
+
+interface AdminPortalProps {
+  onBackToApp: () => void;
+  onPreviewBook: (slug: string) => void;
+}
+
+export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreviewBook }) => {
+  const [activeTab, setActiveTab] = useState<'upload' | 'sales' | 'bundles' | 'accounts'>('upload');
+  const [books, setBooks] = useState<Book[]>([]);
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [sales, setSales] = useState<SaleTransaction[]>([]);
+  
+  // Book Upload & Price State
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('14.99');
+  const [originalPrice, setOriginalPrice] = useState('29.99');
+  const [recipeCount, setRecipeCount] = useState('30');
+  const [previewLimit, setPreviewLimit] = useState('5');
+  const [category, setCategory] = useState('Open-Fire & Grilling');
+  const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccessMsg, setUploadSuccessMsg] = useState('');
+
+  // Bundle Creator State
+  const [bundleTitle, setBundleTitle] = useState('');
+  const [bundleSlug, setBundleSlug] = useState('');
+  const [bundleDescription, setBundleDescription] = useState('');
+  const [bundlePrice, setBundlePrice] = useState('29.99');
+  const [bundleOriginalPrice, setBundleOriginalPrice] = useState('89.97');
+  const [bundleBadge, setBundleBadge] = useState('SAVE 67% • LIMITED BUNDLE');
+  const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
+
+  // Accounts & Free Storage Config State
+  const [paypalId, setPaypalId] = useState('');
+  const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('sandbox');
+  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseKey, setSupabaseKey] = useState('');
+  const [storageSavedMsg, setStorageSavedMsg] = useState('');
+
+  useEffect(() => {
+    refreshData();
+    const currentSettings = settingsStore.getSettings();
+    setPaypalId(currentSettings.paypalClientId || '');
+    setPaypalMode(currentSettings.paypalMode || 'sandbox');
+    setSupabaseUrl(currentSettings.supabaseUrl || '');
+    setSupabaseKey(currentSettings.supabaseAnonKey || '');
+  }, []);
+
+  const refreshData = () => {
+    setBooks(bookStore.getBooks());
+    setBundles(bookStore.getBundles());
+    setSales(salesStore.getSales());
+  };
+
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!slug) {
+      setSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+    }
+  };
+
+  const handlePdfUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !price) {
+      alert('Please fill out the title and price.');
+      return;
+    }
+
+    setIsUploading(true);
+    let uploadedPdfInfo: { url: string; size: string; name: string } | null = null;
+
+    try {
+      if (selectedPdf) {
+        uploadedPdfInfo = await storageService.uploadPdfFile(selectedPdf, 'books');
+      }
+
+      const newBook: Book = {
+        id: `vault-book-${Date.now()}`,
+        slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        title,
+        subtitle: subtitle || '30 Phone-Ready Recipes & Categorized Grocery Checklists',
+        tagline: 'Instant Printable Culinary Library',
+        description: description || 'Editorial recipe collection curated for phone reading and fireside cooking.',
+        coverImage: '/assets/images/recipe-card-sample.png',
+        price: parseFloat(price) || 14.99,
+        originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+        recipeCount: parseInt(recipeCount, 10) || 30,
+        previewPagesAllowed: parseInt(previewLimit, 10) || 5,
+        category,
+        tags: [category, 'Phone-Ready', 'Grocery Checklists'],
+        pdfFileUrl: uploadedPdfInfo?.url,
+        pdfFileName: uploadedPdfInfo?.name || selectedPdf?.name,
+        pdfFileSize: uploadedPdfInfo?.size || '15.0 MB',
+        pages: [], // Will generate placeholder cards or render from PDF
+        createdAt: new Date().toISOString(),
+      };
+
+      bookStore.saveBook(newBook);
+      refreshData();
+      setIsUploading(false);
+      setUploadSuccessMsg(`Successfully created book "${title}" with price $${price} USD!`);
+      // Reset form
+      setTitle('');
+      setSlug('');
+      setSubtitle('');
+      setDescription('');
+      setSelectedPdf(null);
+      setTimeout(() => setUploadSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error(err);
+      setIsUploading(false);
+      alert('Upload failed: ' + err);
+    }
+  };
+
+  const handleSaveBundle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bundleTitle || selectedBookIds.length === 0) {
+      alert('Please provide a bundle title and select at least one book.');
+      return;
+    }
+
+    const newBundle: Bundle = {
+      id: `bundle-${Date.now()}`,
+      slug: bundleSlug || bundleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      title: bundleTitle,
+      description: bundleDescription || 'All-inclusive vault bundle with full printable library and checklists.',
+      bookIds: selectedBookIds,
+      price: parseFloat(bundlePrice) || 29.99,
+      originalPrice: parseFloat(bundleOriginalPrice) || 59.99,
+      badge: bundleBadge,
+      coverImage: '/assets/images/recipe-card-sample.png',
+      includesChecklists: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    bookStore.saveBundle(newBundle);
+    refreshData();
+    setBundleTitle('');
+    setBundleSlug('');
+    setSelectedBookIds([]);
+    alert('Bundle created successfully!');
+  };
+
+  const handleSaveAccounts = (e: React.FormEvent) => {
+    e.preventDefault();
+    settingsStore.updateSettings({
+      paypalClientId: paypalId,
+      paypalMode: paypalMode,
+      supabaseUrl: supabaseUrl,
+      supabaseAnonKey: supabaseKey,
+      storageProvider: supabaseUrl ? 'supabase' : 'browser',
+    });
+
+    if (supabaseUrl && supabaseKey) {
+      storageService.saveConfig({
+        provider: 'supabase',
+        supabaseUrl,
+        supabaseAnonKey: supabaseKey,
+        bucketName: 'recipe-vault-pdfs',
+      });
+    }
+
+    setStorageSavedMsg('Settings & Account configurations saved successfully!');
+    setTimeout(() => setStorageSavedMsg(''), 4000);
+  };
+
+  const handleDownloadSalesCsv = () => {
+    const csvContent = salesStore.exportCsv();
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Recipe_Vault_Sales_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const totalRevenue = salesStore.getTotalRevenue();
+
+  return (
+    <div className="min-h-screen bg-[#100f0e] text-[#f2efe9] pb-16">
+      {/* Top Bar */}
+      <div className="bg-[#181614] border-b border-[#29241e] px-4 py-3 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center gap-3">
+          <img 
+            src="/assets/images/logo.png" 
+            alt="The Recipe Vault Co." 
+            className="w-9 h-9 rounded-lg object-contain border border-[#cf7b3e]/40" 
+          />
+          <div>
+            <h1 className="font-serif font-bold text-lg text-white">
+              Admin & Publisher Control Center
+            </h1>
+            <p className="text-[11px] text-[#dea374]">
+              The Recipe Vault Co. • Mobile & Web Digital Management
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={onBackToApp}
+          className="px-3.5 py-1.5 rounded-full bg-[#27221d] hover:bg-[#352f28] text-xs font-semibold text-white border border-[#443b32] transition-all"
+        >
+          Exit to App
+        </button>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap gap-2 border-b border-[#26211c] pb-3 mb-6">
+          <button
+            onClick={() => setActiveTab('upload')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'upload'
+                ? 'bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/20'
+                : 'bg-[#1a1715] text-[#b3aaa0] hover:text-white border border-[#2b251f]'
+            }`}
+          >
+            <UploadCloud className="w-4 h-4" />
+            <span>1. Upload PDF & Set Price</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('sales')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'sales'
+                ? 'bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/20'
+                : 'bg-[#1a1715] text-[#b3aaa0] hover:text-white border border-[#2b251f]'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>2. Capture Sales (${totalRevenue.toFixed(2)})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('bundles')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'bundles'
+                ? 'bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/20'
+                : 'bg-[#1a1715] text-[#b3aaa0] hover:text-white border border-[#2b251f]'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>3. Create Bundles</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('accounts')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'accounts'
+                ? 'bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/20'
+                : 'bg-[#1a1715] text-[#b3aaa0] hover:text-white border border-[#2b251f]'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>4. Accounts, Vercel & Free Storage</span>
+          </button>
+        </div>
+
+        {/* TAB 1: UPLOAD PDF & SET PRICE */}
+        {activeTab === 'upload' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Upload Form */}
+            <div className="lg:col-span-2 bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-[#dea374]" />
+                <h2 className="font-serif text-lg font-bold text-white">
+                  Upload Digital Booklet & Configure Price
+                </h2>
+              </div>
+
+              {uploadSuccessMsg && (
+                <div className="mb-4 bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs p-3 rounded-xl flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>{uploadSuccessMsg}</span>
+                </div>
+              )}
+
+              <form onSubmit={handlePdfUpload} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Book Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={title}
+                      onChange={(e) => handleTitleChange(e.target.value)}
+                      placeholder="e.g. Master Open-Fire Braai & Hearth Stews"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Unique URL Slug (Link) *
+                    </label>
+                    <div className="flex items-center bg-[#121110] border border-[#383027] rounded-xl px-2.5 py-1.5 text-xs">
+                      <span className="text-[#726a5e] mr-1">/book/</span>
+                      <input
+                        type="text"
+                        required
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                        placeholder="open-fire-mastery"
+                        className="bg-transparent text-white focus:outline-none flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Price in Dollars ($ USD) *
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#dea374]" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder="14.99"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Original Price ($ Strike-through)
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#777]" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={originalPrice}
+                        onChange={(e) => setOriginalPrice(e.target.value)}
+                        placeholder="29.99"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Free Preview Pages
+                    </label>
+                    <input
+                      type="number"
+                      value={previewLimit}
+                      onChange={(e) => setPreviewLimit(e.target.value)}
+                      placeholder="5"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                    <span className="text-[10px] text-[#7d756a]">Default: 5 pages free</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    >
+                      <option value="Open-Fire & Grilling">Open-Fire & Grilling</option>
+                      <option value="Heritage Comfort">Heritage Comfort Food</option>
+                      <option value="Global Cuisines">Authentic Global Cuisines</option>
+                      <option value="Artisanal Bakes">Artisanal Bakes & Hearth Breads</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Subtitle / Volume Info
+                    </label>
+                    <input
+                      type="text"
+                      value={subtitle}
+                      onChange={(e) => setSubtitle(e.target.value)}
+                      placeholder="Volume 01: Fire & Ember"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                    Booklet Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe recipes, flavors, foolproof tips, and phone-ready layout..."
+                    className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                  />
+                </div>
+
+                {/* PDF File Upload Drag/Drop Box */}
+                <div>
+                  <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                    Digital PDF File (Free storage integration)
+                  </label>
+                  <div className="border-2 border-dashed border-[#383027] hover:border-[#cf7b3e] rounded-2xl p-4 text-center cursor-pointer transition-all bg-[#131110]">
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => setSelectedPdf(e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="pdf-file-input"
+                    />
+                    <label htmlFor="pdf-file-input" className="cursor-pointer block">
+                      <UploadCloud className="w-8 h-8 text-[#dea374] mx-auto mb-1" />
+                      {selectedPdf ? (
+                        <p className="text-xs text-emerald-400 font-semibold truncate">
+                          Selected: {selectedPdf.name} ({(selectedPdf.size / (1024 * 1024)).toFixed(1)} MB)
+                        </p>
+                      ) : (
+                        <div>
+                          <p className="text-xs font-medium text-white">Click to select PDF booklet</p>
+                          <p className="text-[10px] text-[#70695f] mt-0.5">
+                            Free tier storage supported • No storage charges
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#cf7b3e]/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>{isUploading ? 'Publishing Booklet...' : `Publish Booklet at $${price} USD`}</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Existing Books List */}
+            <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6 flex flex-col justify-between">
+              <div>
+                <h3 className="font-serif text-base font-bold text-white mb-3">
+                  Current Published Books ({books.length})
+                </h3>
+
+                <div className="space-y-3 overflow-y-auto max-h-[500px] pr-1">
+                  {books.map((b) => (
+                    <div 
+                      key={b.id} 
+                      className="bg-[#1f1b17] p-3 rounded-2xl border border-[#322a22] flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 truncate">
+                        <img 
+                          src={b.coverImage} 
+                          alt={b.title} 
+                          className="w-10 h-12 rounded object-cover border border-[#44372c]" 
+                        />
+                        <div className="truncate">
+                          <h4 className="text-xs font-bold text-white truncate">{b.title}</h4>
+                          <div className="flex items-center gap-2 text-[10px] text-[#a1998f] mt-0.5">
+                            <span className="text-[#dea374] font-semibold">${b.price.toFixed(2)} USD</span>
+                            <span>•</span>
+                            <span>{b.previewPagesAllowed} Free Pages</span>
+                          </div>
+                          <span className="text-[9px] text-[#777] font-mono">/book/{b.slug}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onPreviewBook(b.slug)}
+                          title="Preview in Kindle Reader"
+                          className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-[#3d342b] text-[#dea374]"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        {books.length > 1 && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete "${b.title}"?`)) {
+                                bookStore.deleteBook(b.id);
+                                refreshData();
+                              }
+                            }}
+                            title="Delete"
+                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-rose-950 text-rose-400"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-[#29221b] text-[11px] text-[#7a7267]">
+                Each book automatically has its unique link and 5-page preview barrier.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: SALES CAPTURE */}
+        {activeTab === 'sales' && (
+          <div className="space-y-6">
+            {/* Sales Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-[#181614] border border-[#2c2620] p-5 rounded-2xl">
+                <span className="text-xs text-[#a39a8e]">Total Captured Revenue</span>
+                <div className="text-3xl font-extrabold text-white mt-1">
+                  ${totalRevenue.toFixed(2)} <span className="text-xs text-emerald-400 font-semibold">USD</span>
+                </div>
+                <p className="text-[10px] text-emerald-400 mt-1">Direct to your PayPal account</p>
+              </div>
+
+              <div className="bg-[#181614] border border-[#2c2620] p-5 rounded-2xl">
+                <span className="text-xs text-[#a39a8e]">Total Completed Orders</span>
+                <div className="text-3xl font-extrabold text-[#dea374] mt-1">
+                  {sales.filter((s) => s.status === 'COMPLETED').length}
+                </div>
+                <p className="text-[10px] text-[#80776b] mt-1">Includes books & bundle packs</p>
+              </div>
+
+              <div className="bg-[#181614] border border-[#2c2620] p-5 rounded-2xl flex flex-col justify-between">
+                <div>
+                  <span className="text-xs text-[#a39a8e]">Export Accounting Data</span>
+                  <p className="text-[11px] text-[#7d756a] mt-0.5">Download full CSV with PayPal TX IDs</p>
+                </div>
+                <button
+                  onClick={handleDownloadSalesCsv}
+                  className="mt-2 py-2 px-3 rounded-xl bg-[#26201b] hover:bg-[#382f27] border border-[#44382d] text-xs font-semibold text-[#dea374] flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Sales CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Sales Table */}
+            <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-lg font-bold text-white">
+                  Live Captured PayPal Sales Log
+                </h3>
+                <span className="text-xs text-[#8a8175] font-mono">
+                  {sales.length} transactions recorded
+                </span>
+              </div>
+
+              {sales.length === 0 ? (
+                <div className="p-8 text-center text-xs text-[#777]">
+                  No sales recorded yet. Sales will appear here automatically when users purchase via PayPal.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#29221b] text-[#8c8376] uppercase text-[10px] tracking-wider">
+                        <th className="pb-3 font-semibold">Date</th>
+                        <th className="pb-3 font-semibold">Buyer Email</th>
+                        <th className="pb-3 font-semibold">Item</th>
+                        <th className="pb-3 font-semibold">PayPal TX ID</th>
+                        <th className="pb-3 font-semibold">Amount</th>
+                        <th className="pb-3 font-semibold">Status</th>
+                        <th className="pb-3 font-semibold">Unlock Token</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#221c17]">
+                      {sales.map((sale) => (
+                        <tr key={sale.id} className="hover:bg-[#1f1b17] transition-colors">
+                          <td className="py-3 text-[#a8a195]">
+                            {new Date(sale.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 text-white font-medium">
+                            {sale.buyerEmail}
+                            {sale.buyerName && (
+                              <div className="text-[10px] text-[#797165]">{sale.buyerName}</div>
+                            )}
+                          </td>
+                          <td className="py-3 text-[#dea374] max-w-[200px] truncate">
+                            {sale.itemTitle}
+                          </td>
+                          <td className="py-3 font-mono text-[11px] text-[#91887b]">
+                            {sale.paypalTransactionId}
+                          </td>
+                          <td className="py-3 font-bold text-white">
+                            ${sale.amount.toFixed(2)} USD
+                          </td>
+                          <td className="py-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/70 text-emerald-400 border border-emerald-500/30">
+                              {sale.status}
+                            </span>
+                          </td>
+                          <td className="py-3 font-mono text-[10px] text-[#7d756a]">
+                            {sale.unlockToken}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: CREATE BUNDLES */}
+        {activeTab === 'bundles' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Package className="w-5 h-5 text-[#dea374]" />
+                <h2 className="font-serif text-lg font-bold text-white">
+                  Create a Multi-Book Bundle
+                </h2>
+              </div>
+
+              <form onSubmit={handleSaveBundle} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Bundle Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={bundleTitle}
+                      onChange={(e) => setBundleTitle(e.target.value)}
+                      placeholder="e.g. Master Heritage & Fire Trilogy"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Badge Text
+                    </label>
+                    <input
+                      type="text"
+                      value={bundleBadge}
+                      onChange={(e) => setBundleBadge(e.target.value)}
+                      placeholder="SAVE 67% • BEST VALUE"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Bundle Price ($ USD) *
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#dea374]" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={bundlePrice}
+                        onChange={(e) => setBundlePrice(e.target.value)}
+                        placeholder="29.99"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Original Value ($ Strike-through)
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#777]" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={bundleOriginalPrice}
+                        onChange={(e) => setBundleOriginalPrice(e.target.value)}
+                        placeholder="89.97"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#c4bcae] mb-2">
+                    Select Books to Include in this Bundle *
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto bg-[#121110] p-3 rounded-2xl border border-[#383027]">
+                    {books.map((b) => (
+                      <label 
+                        key={b.id} 
+                        className="flex items-center gap-2.5 text-xs text-white hover:bg-[#1e1a16] p-2 rounded-xl cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedBookIds.includes(b.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBookIds([...selectedBookIds, b.id]);
+                            } else {
+                              setSelectedBookIds(selectedBookIds.filter((id) => id !== b.id));
+                            }
+                          }}
+                          className="rounded text-[#cf7b3e] focus:ring-0"
+                        />
+                        <span className="font-semibold">{b.title}</span>
+                        <span className="text-[#8e8579]">(${b.price.toFixed(2)})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white font-bold text-xs sm:text-sm shadow-lg transition-all"
+                >
+                  Save & Publish Bundle
+                </button>
+              </form>
+            </div>
+
+            {/* Existing Bundles */}
+            <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+              <h3 className="font-serif text-base font-bold text-white mb-3">
+                Active Bundles ({bundles.length})
+              </h3>
+
+              <div className="space-y-3">
+                {bundles.map((bundle) => (
+                  <div key={bundle.id} className="bg-[#1f1b17] p-3 rounded-2xl border border-[#332b22]">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#dea374] bg-[#2e261f] px-2 py-0.5 rounded">
+                          {bundle.badge}
+                        </span>
+                        <h4 className="text-xs font-bold text-white mt-1.5">{bundle.title}</h4>
+                        <div className="flex items-center gap-2 text-xs mt-1">
+                          <span className="font-extrabold text-white">${bundle.price.toFixed(2)} USD</span>
+                          <span className="line-through text-[10px] text-[#7a7268]">${bundle.originalPrice.toFixed(2)}</span>
+                        </div>
+                        <p className="text-[10px] text-[#938b7e] mt-1">
+                          Includes {bundle.bookIds.length} complete digital recipe packs.
+                        </p>
+                      </div>
+
+                      {bundles.length > 1 && (
+                        <button
+                          onClick={() => {
+                            bookStore.deleteBundle(bundle.id);
+                            refreshData();
+                          }}
+                          className="text-rose-400 p-1 hover:bg-rose-950 rounded"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: ACCOUNTS, VERCEL & FREE STORAGE CONFIGURATION */}
+        {activeTab === 'accounts' && (
+          <div className="space-y-6">
+            {storageSavedMsg && (
+              <div className="bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs p-3 rounded-xl flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>{storageSavedMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Free Storage Architecture */}
+              <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Database className="w-5 h-5 text-[#dea374]" />
+                  <h3 className="font-serif text-base font-bold text-white">
+                    Free Cloud PDF Storage (Zero Cost)
+                  </h3>
+                </div>
+
+                <p className="text-xs text-[#a8a195] leading-relaxed mb-4">
+                  You requested a completely free service to upload contents without paying money. We support:
+                </p>
+
+                <div className="space-y-3 mb-5">
+                  <div className="bg-[#1f1b17] p-3 rounded-xl border border-[#352c22] text-xs">
+                    <div className="flex items-center justify-between font-bold text-white mb-1">
+                      <span className="flex items-center gap-1.5 text-emerald-400">
+                        <CheckCircle className="w-3.5 h-3.5" /> Supabase Storage (100% Free Forever)
+                      </span>
+                      <span className="text-[10px] bg-emerald-950 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.5 rounded">
+                        1 GB FREE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#938a7e]">
+                      Free PostgreSQL + 1GB Storage bucket. Host all your recipe card PDFs and checklists forever without any credit card or fees.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#1f1b17] p-3 rounded-xl border border-[#352c22] text-xs">
+                    <div className="flex items-center justify-between font-bold text-white mb-1">
+                      <span className="flex items-center gap-1.5 text-[#dea374]">
+                        <Smartphone className="w-3.5 h-3.5" /> Native Browser & Device Storage
+                      </span>
+                      <span className="text-[10px] bg-[#2d251d] border border-[#cf7b3e]/40 text-[#dea374] px-1.5 py-0.5 rounded">
+                        UNLIMITED FREE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#938a7e]">
+                      Stores recipes and uploaded PDFs directly in indexed offline storage on the customer’s phone / browser. Works instantly with zero setup.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Supabase Free Settings Form */}
+                <form onSubmit={handleSaveAccounts} className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                      Supabase Project URL (Optional Free Cloud)
+                    </label>
+                    <input
+                      type="text"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://xyzcompany.supabase.co"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                      Supabase Anon Public API Key
+                    </label>
+                    <input
+                      type="password"
+                      value={supabaseKey}
+                      onChange={(e) => setSupabaseKey(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 rounded-xl bg-[#29221b] hover:bg-[#382f25] border border-[#44382c] text-[#dea374] font-semibold text-xs transition-all"
+                  >
+                    Save Free Storage Credentials
+                  </button>
+                </form>
+              </div>
+
+              {/* PayPal Credentials & Accounts Guide */}
+              <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Server className="w-5 h-5 text-[#dea374]" />
+                    <h3 className="font-serif text-base font-bold text-white">
+                      PayPal Live & Sandbox Configuration
+                    </h3>
+                  </div>
+
+                  <p className="text-xs text-[#a8a195] leading-relaxed mb-4">
+                    Connect your PayPal merchant account to collect direct dollar ($) payments into your balance.
+                  </p>
+
+                  <form onSubmit={handleSaveAccounts} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                        PayPal Client ID
+                      </label>
+                      <input
+                        type="text"
+                        value={paypalId}
+                        onChange={(e) => setPaypalId(e.target.value)}
+                        placeholder="Enter your PayPal Client ID (or 'test')"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                        PayPal Mode
+                      </label>
+                      <div className="flex gap-4 text-xs text-white pt-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="paypalMode"
+                            checked={paypalMode === 'sandbox'}
+                            onChange={() => setPaypalMode('sandbox')}
+                            className="text-[#cf7b3e]"
+                          />
+                          <span>Sandbox (Testing Mode)</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="paypalMode"
+                            checked={paypalMode === 'live'}
+                            onChange={() => setPaypalMode('live')}
+                            className="text-[#cf7b3e]"
+                          />
+                          <span>Live (Accept Real Money)</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white font-bold text-xs transition-all shadow-md"
+                    >
+                      Update PayPal Credentials
+                    </button>
+                  </form>
+                </div>
+
+                {/* Vercel & Capacitor Deployment Notes */}
+                <div className="mt-5 pt-4 border-t border-[#29221b] text-xs">
+                  <div className="flex items-center gap-1.5 text-white font-semibold mb-1">
+                    <Globe className="w-4 h-4 text-[#dea374]" />
+                    <span>Vercel & Capacitor Ready</span>
+                  </div>
+                  <p className="text-[11px] text-[#8a8175] leading-relaxed">
+                    The app is configured with `capacitor.config.ts` and `vercel.json`. As requested, when you share your Vercel and Capacitor accounts, we will deploy directly to your production domains and mobile builds!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
