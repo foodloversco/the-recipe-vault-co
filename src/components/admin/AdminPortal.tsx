@@ -63,6 +63,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   // Accounts & Free Storage Config State
   const [paypalId, setPaypalId] = useState('');
   const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('sandbox');
+  const [storageProvider, setStorageProvider] = useState<'cloudflare-r2' | 'supabase' | 'browser'>('cloudflare-r2');
+  const [r2AccountId, setR2AccountId] = useState('');
+  const [r2AccessKeyId, setR2AccessKeyId] = useState('');
+  const [r2SecretAccessKey, setR2SecretAccessKey] = useState('');
+  const [r2BucketName, setR2BucketName] = useState('recipe-vault-books');
+  const [r2PublicUrl, setR2PublicUrl] = useState('');
   const [supabaseUrl, setSupabaseUrl] = useState('');
   const [supabaseKey, setSupabaseKey] = useState('');
   const [storageSavedMsg, setStorageSavedMsg] = useState('');
@@ -72,6 +78,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     const currentSettings = settingsStore.getSettings();
     setPaypalId(currentSettings.paypalClientId || '');
     setPaypalMode(currentSettings.paypalMode || 'sandbox');
+    setStorageProvider(currentSettings.storageProvider || 'cloudflare-r2');
+    setR2AccountId(currentSettings.r2AccountId || '');
+    setR2AccessKeyId(currentSettings.r2AccessKeyId || '');
+    setR2SecretAccessKey(currentSettings.r2SecretAccessKey || '');
+    setR2BucketName(currentSettings.r2BucketName || 'recipe-vault-books');
+    setR2PublicUrl(currentSettings.r2PublicUrl || '');
     setSupabaseUrl(currentSettings.supabaseUrl || '');
     setSupabaseKey(currentSettings.supabaseAnonKey || '');
   }, []);
@@ -177,21 +189,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     settingsStore.updateSettings({
       paypalClientId: paypalId,
       paypalMode: paypalMode,
+      storageProvider: storageProvider,
+      r2AccountId,
+      r2AccessKeyId,
+      r2SecretAccessKey,
+      r2BucketName,
+      r2PublicUrl,
       supabaseUrl: supabaseUrl,
       supabaseAnonKey: supabaseKey,
-      storageProvider: supabaseUrl ? 'supabase' : 'browser',
     });
 
-    if (supabaseUrl && supabaseKey) {
-      storageService.saveConfig({
-        provider: 'supabase',
-        supabaseUrl,
-        supabaseAnonKey: supabaseKey,
-        bucketName: 'recipe-vault-pdfs',
-      });
-    }
+    storageService.saveConfig({
+      provider: storageProvider,
+      r2AccountId,
+      r2AccessKeyId,
+      r2SecretAccessKey,
+      r2BucketName,
+      r2PublicUrl,
+      supabaseUrl,
+      supabaseAnonKey: supabaseKey,
+      supabaseBucket: 'recipe-vault-pdfs',
+    });
 
-    setStorageSavedMsg('Settings & Account configurations saved successfully!');
+    setStorageSavedMsg('Settings, Cloudflare R2 & PayPal configurations saved successfully!');
     setTimeout(() => setStorageSavedMsg(''), 4000);
   };
 
@@ -818,84 +838,186 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Free Storage Architecture */}
+              {/* High-Scale Zero Egress Storage (Cloudflare R2) */}
               <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Database className="w-5 h-5 text-[#dea374]" />
                   <h3 className="font-serif text-base font-bold text-white">
-                    Free Cloud PDF Storage (Zero Cost)
+                    Cloudflare R2 (100% Free Egress Bandwidth)
                   </h3>
                 </div>
 
-                <p className="text-xs text-[#a8a195] leading-relaxed mb-4">
-                  You requested a completely free service to upload contents without paying money. We support:
-                </p>
-
-                <div className="space-y-3 mb-5">
-                  <div className="bg-[#1f1b17] p-3 rounded-xl border border-[#352c22] text-xs">
-                    <div className="flex items-center justify-between font-bold text-white mb-1">
-                      <span className="flex items-center gap-1.5 text-emerald-400">
-                        <CheckCircle className="w-3.5 h-3.5" /> Supabase Storage (100% Free Forever)
-                      </span>
-                      <span className="text-[10px] bg-emerald-950 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.5 rounded">
-                        1 GB FREE
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#938a7e]">
-                      Free PostgreSQL + 1GB Storage bucket. Host all your recipe card PDFs and checklists forever without any credit card or fees.
-                    </p>
-                  </div>
-
-                  <div className="bg-[#1f1b17] p-3 rounded-xl border border-[#352c22] text-xs">
-                    <div className="flex items-center justify-between font-bold text-white mb-1">
-                      <span className="flex items-center gap-1.5 text-[#dea374]">
-                        <Smartphone className="w-3.5 h-3.5" /> Native Browser & Device Storage
-                      </span>
-                      <span className="text-[10px] bg-[#2d251d] border border-[#cf7b3e]/40 text-[#dea374] px-1.5 py-0.5 rounded">
-                        UNLIMITED FREE
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#938a7e]">
-                      Stores recipes and uploaded PDFs directly in indexed offline storage on the customer’s phone / browser. Works instantly with zero setup.
-                    </p>
-                  </div>
+                <div className="p-3 bg-[#241a12] border border-[#cf7b3e]/40 rounded-xl mb-4 text-xs text-[#d6cdbf]">
+                  <p className="font-bold text-white flex items-center gap-1.5 mb-1">
+                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    Why Cloudflare R2 Handles 1,000+ Daily Visitors for $0
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-[#b8ada0]">
+                    Unlike Supabase or AWS S3 which charge or cap bandwidth egress, <strong className="text-white">Cloudflare R2 has $0 Egress fees</strong>. You get <strong>10 GB free storage</strong> and <strong>10,000,000 free requests</strong> every month. Even if 1,000+ people open, flip, and download PDFs, your cost is literally <strong>$0.00</strong>.
+                  </p>
                 </div>
 
-                {/* Supabase Free Settings Form */}
-                <form onSubmit={handleSaveAccounts} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
-                      Supabase Project URL (Optional Free Cloud)
-                    </label>
-                    <input
-                      type="text"
-                      value={supabaseUrl}
-                      onChange={(e) => setSupabaseUrl(e.target.value)}
-                      placeholder="https://xyzcompany.supabase.co"
-                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
-                      Supabase Anon Public API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={supabaseKey}
-                      onChange={(e) => setSupabaseKey(e.target.value)}
-                      placeholder="eyJhbGciOiJIUzI1NiIsIn..."
-                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
-                    />
-                  </div>
-
+                {/* Storage Provider Selector */}
+                <div className="flex gap-2 mb-4 text-xs">
                   <button
-                    type="submit"
-                    className="w-full py-2.5 rounded-xl bg-[#29221b] hover:bg-[#382f25] border border-[#44382c] text-[#dea374] font-semibold text-xs transition-all"
+                    type="button"
+                    onClick={() => setStorageProvider('cloudflare-r2')}
+                    className={`flex-1 py-1.5 px-2 rounded-lg font-semibold border transition-all ${
+                      storageProvider === 'cloudflare-r2'
+                        ? 'bg-[#cf7b3e] text-white border-[#cf7b3e]'
+                        : 'bg-[#141210] text-[#8e8578] border-[#2c2620]'
+                    }`}
                   >
-                    Save Free Storage Credentials
+                    Cloudflare R2 (Recommended)
                   </button>
-                </form>
+                  <button
+                    type="button"
+                    onClick={() => setStorageProvider('supabase')}
+                    className={`flex-1 py-1.5 px-2 rounded-lg font-semibold border transition-all ${
+                      storageProvider === 'supabase'
+                        ? 'bg-[#cf7b3e] text-white border-[#cf7b3e]'
+                        : 'bg-[#141210] text-[#8e8578] border-[#2c2620]'
+                    }`}
+                  >
+                    Supabase
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStorageProvider('browser')}
+                    className={`flex-1 py-1.5 px-2 rounded-lg font-semibold border transition-all ${
+                      storageProvider === 'browser'
+                        ? 'bg-[#cf7b3e] text-white border-[#cf7b3e]'
+                        : 'bg-[#141210] text-[#8e8578] border-[#2c2620]'
+                    }`}
+                  >
+                    Local Device Cache
+                  </button>
+                </div>
+
+                {/* Cloudflare R2 Form */}
+                {storageProvider === 'cloudflare-r2' && (
+                  <form onSubmit={handleSaveAccounts} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                        Cloudflare Account ID
+                      </label>
+                      <input
+                        type="text"
+                        value={r2AccountId}
+                        onChange={(e) => setR2AccountId(e.target.value)}
+                        placeholder="e.g. 9b7a42b189c426379a0d8e4..."
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                          R2 Access Key ID
+                        </label>
+                        <input
+                          type="text"
+                          value={r2AccessKeyId}
+                          onChange={(e) => setR2AccessKeyId(e.target.value)}
+                          placeholder="R2 API Token Key"
+                          className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                          R2 Secret Access Key
+                        </label>
+                        <input
+                          type="password"
+                          value={r2SecretAccessKey}
+                          onChange={(e) => setR2SecretAccessKey(e.target.value)}
+                          placeholder="Secret Key"
+                          className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                          Bucket Name
+                        </label>
+                        <input
+                          type="text"
+                          value={r2BucketName}
+                          onChange={(e) => setR2BucketName(e.target.value)}
+                          placeholder="recipe-vault-books"
+                          className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                          Public Bucket URL (or r2.dev)
+                        </label>
+                        <input
+                          type="text"
+                          value={r2PublicUrl}
+                          onChange={(e) => setR2PublicUrl(e.target.value)}
+                          placeholder="https://pub-xxxxxx.r2.dev"
+                          className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white font-bold text-xs transition-all shadow-md mt-2"
+                    >
+                      Save Cloudflare R2 Credentials
+                    </button>
+                  </form>
+                )}
+
+                {/* Supabase Form */}
+                {storageProvider === 'supabase' && (
+                  <form onSubmit={handleSaveAccounts} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                        Supabase Project URL
+                      </label>
+                      <input
+                        type="text"
+                        value={supabaseUrl}
+                        onChange={(e) => setSupabaseUrl(e.target.value)}
+                        placeholder="https://xyzcompany.supabase.co"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                        Supabase Anon Public API Key
+                      </label>
+                      <input
+                        type="password"
+                        value={supabaseKey}
+                        onChange={(e) => setSupabaseKey(e.target.value)}
+                        placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-[#29221b] hover:bg-[#382f25] border border-[#44382c] text-[#dea374] font-semibold text-xs transition-all"
+                    >
+                      Save Supabase Credentials
+                    </button>
+                  </form>
+                )}
+
+                {/* Local Cache Info */}
+                {storageProvider === 'browser' && (
+                  <div className="p-4 bg-[#141210] rounded-2xl border border-[#2e2720] text-xs space-y-2">
+                    <p className="font-semibold text-white">Native Device Cache Active</p>
+                    <p className="text-[#a1998f] text-[11px]">
+                      Files are stored in the device’s local CacheStorage & IndexedDB. Zero cloud configuration required, 100% free and works fully offline.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* PayPal Credentials & Accounts Guide */}
@@ -981,3 +1103,4 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     </div>
   );
 };
+

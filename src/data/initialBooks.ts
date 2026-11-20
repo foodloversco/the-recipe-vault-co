@@ -330,3 +330,4 @@ export const INITIAL_BUNDLES: Bundle[] = [
     createdAt: '2026-11-20T00:00:00.000Z'
   }
 ];
+

@@ -79,3 +79,4 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, unlocke
     </header>
   );
 };
+

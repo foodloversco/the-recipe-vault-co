@@ -6,9 +6,14 @@ const SETTINGS_KEY = 'the_recipe_vault_settings_v1';
 const DEFAULT_SETTINGS: AppSettings = {
   appName: 'The Recipe Vault Co.',
   subHeading: APP_SUBHEADING,
-  paypalClientId: 'test', // 'test' activates PayPal JS SDK sandbox mock mode
+  paypalClientId: 'test',
   paypalMode: 'sandbox',
-  storageProvider: 'browser', // default zero-cost free browser storage
+  storageProvider: 'cloudflare-r2', // Cloudflare R2: 10GB free + $0 egress bandwidth
+  r2AccountId: '',
+  r2AccessKeyId: '',
+  r2SecretAccessKey: '',
+  r2BucketName: 'recipe-vault-books',
+  r2PublicUrl: '',
   supabaseUrl: '',
   supabaseAnonKey: '',
   supabaseBucket: 'recipe-vault-pdfs',
@@ -48,3 +53,4 @@ class SettingsStore {
 }
 
 export const settingsStore = new SettingsStore();
+

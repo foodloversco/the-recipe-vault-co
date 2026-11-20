@@ -80,9 +80,17 @@ export interface AppSettings {
   subHeading: string;
   paypalClientId: string;
   paypalMode: 'sandbox' | 'live';
-  storageProvider: 'supabase' | 'browser' | 'firebase';
-  supabaseUrl: string;
-  supabaseAnonKey: string;
-  supabaseBucket: string;
+  storageProvider: 'cloudflare-r2' | 'supabase' | 'browser';
+  // Cloudflare R2 (10GB Free + Unlimited $0 Egress Bandwidth)
+  r2AccountId?: string;
+  r2AccessKeyId?: string;
+  r2SecretAccessKey?: string;
+  r2BucketName?: string;
+  r2PublicUrl?: string; // e.g. https://pub-xxx.r2.dev or https://assets.therecipevault.co
+  // Supabase
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+  supabaseBucket?: string;
   adminPasswordHash?: string;
 }
+
