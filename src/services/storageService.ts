@@ -39,6 +39,8 @@ export class StorageService {
     return {
       provider: 'cloudflare-r2',
       r2AccountId: '96919865db5f5c66d503f8cbe3abc1b5',
+      r2AccessKeyId: '8391e9775eb64f2aa6c6d5996df49c19',
+      r2SecretAccessKey: 'ee1b1f65dd2ca9fdfeafa753bb5cd3c23b7a269a350a51886f4fd3fcc300b639',
       r2BucketName: 'recipe-vault-books',
       r2PublicUrl: 'https://pub-152f26d662d94267bac96bce4bdcd35b.r2.dev',
     };
