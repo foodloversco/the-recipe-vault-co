@@ -10,33 +10,46 @@ import { LandingPage } from './components/landing/LandingPage';
 import { BookReader } from './components/reader/BookReader';
 import { AdminPortal } from './components/admin/AdminPortal';
 import { PayPalCheckoutModal } from './components/checkout/PayPalCheckoutModal';
+import { MyVaultPage } from './components/library/MyVaultPage';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin' | 'paid' | 'favorites'>('landing');
   const [activeBookSlug, setActiveBookSlug] = useState<string | null>(null);
+  const [readerInitialPage, setReaderInitialPage] = useState<number | undefined>(undefined);
   const [books, setBooks] = useState<Book[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [unlockedSet, setUnlockedSet] = useState<Set<string>>(new Set());
+  const [favoritesCount, setFavoritesCount] = useState<number>(0);
 
   // Checkout Modal State
-  const [checkoutItem, setCheckoutItem] = useState<{ id: string; type: 'book' | 'bundle'; title: string; price: number; originalPrice?: number } | null>(null);
+  const [checkoutItem, setCheckoutItem] = useState<{
+    id: string;
+    type: 'book' | 'bundle';
+    title: string;
+    price: number;
+    originalPrice?: number;
+  } | null>(null);
 
   useEffect(() => {
     refreshData();
 
-    // Check URL parameters for direct book links: ?book=slug
+    // Check URL parameters for direct book links: ?book=slug or ?view=admin/paid/favorites
     const urlParams = new URLSearchParams(window.location.search);
     const bookParam = urlParams.get('book');
     const viewParam = urlParams.get('view');
 
     if (viewParam === 'admin') {
       setCurrentView('admin');
+    } else if (viewParam === 'paid') {
+      setCurrentView('paid');
+    } else if (viewParam === 'favorites') {
+      setCurrentView('favorites');
     } else if (bookParam) {
       setActiveBookSlug(bookParam);
       setCurrentView('reader');
     }
 
-    // Subscribe to cloud sync updates
+    // Subscribe to cloud sync & store updates
     const unsubscribe = bookStore.subscribe(() => {
       refreshData();
     });
@@ -54,7 +67,7 @@ export const App: React.FC = () => {
     const backListener = CapacitorApp.addListener('backButton', () => {
       if (checkoutItem) {
         setCheckoutItem(null);
-      } else if (currentView === 'reader' || currentView === 'admin') {
+      } else if (currentView !== 'landing') {
         handleNavigate('landing');
       } else {
         CapacitorApp.exitApp();
@@ -79,10 +92,12 @@ export const App: React.FC = () => {
       }
     });
     setUnlockedSet(unlocked);
+    setFavoritesCount(bookStore.getTotalFavoritesCount());
   };
 
-  const handleOpenReader = (slug: string) => {
+  const handleOpenReader = (slug: string, initialPage?: number) => {
     setActiveBookSlug(slug);
+    setReaderInitialPage(initialPage);
     setCurrentView('reader');
     const url = new URL(window.location.href);
     url.searchParams.set('book', slug);
@@ -97,6 +112,18 @@ export const App: React.FC = () => {
       url.searchParams.set('view', 'admin');
       url.searchParams.delete('book');
       window.history.pushState({}, '', url.toString());
+    } else if (view === 'paid') {
+      setCurrentView('paid');
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'paid');
+      url.searchParams.delete('book');
+      window.history.pushState({}, '', url.toString());
+    } else if (view === 'favorites') {
+      setCurrentView('favorites');
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'favorites');
+      url.searchParams.delete('book');
+      window.history.pushState({}, '', url.toString());
     } else if (view === 'reader' && slug) {
       handleOpenReader(slug);
     } else {
@@ -109,7 +136,13 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleOpenCheckout = (item: { id: string; type: 'book' | 'bundle'; title: string; price: number; originalPrice?: number }) => {
+  const handleOpenCheckout = (item: {
+    id: string;
+    type: 'book' | 'bundle';
+    title: string;
+    price: number;
+    originalPrice?: number;
+  }) => {
     setCheckoutItem(item);
   };
 
@@ -117,7 +150,9 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  const currentActiveBook = activeBookSlug ? bookStore.getBookBySlug(activeBookSlug) || books[0] : null;
+  const currentActiveBook = activeBookSlug
+    ? bookStore.getBookBySlug(activeBookSlug) || books[0]
+    : null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#100f0e] text-[#f5f2eb]">
@@ -129,6 +164,7 @@ export const App: React.FC = () => {
           currentView={currentView}
           onNavigate={handleNavigate}
           unlockedCount={unlockedSet.size}
+          favoritesCount={favoritesCount}
         />
       )}
 
@@ -141,6 +177,20 @@ export const App: React.FC = () => {
             unlockedBookIds={unlockedSet}
             onOpenReader={handleOpenReader}
             onOpenCheckout={handleOpenCheckout}
+            onRefresh={refreshData}
+          />
+        )}
+
+        {(currentView === 'paid' || currentView === 'favorites') && (
+          <MyVaultPage
+            key={currentView}
+            initialTab={currentView === 'favorites' ? 'favorites' : 'paid'}
+            books={books}
+            unlockedBookIds={unlockedSet}
+            onOpenReader={handleOpenReader}
+            onOpenCheckout={handleOpenCheckout}
+            onBackToCatalog={() => handleNavigate('landing')}
+            onRefresh={refreshData}
           />
         )}
 
@@ -148,6 +198,7 @@ export const App: React.FC = () => {
           <BookReader
             book={currentActiveBook}
             isUnlocked={bookStore.isBookUnlocked(currentActiveBook.id)}
+            initialPage={readerInitialPage}
             onBack={() => handleNavigate('landing')}
             onOpenCheckout={(item) => handleOpenCheckout({ ...item, type: 'book' })}
             onUnlockSuccess={() => {
@@ -165,8 +216,10 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Footer on landing */}
-      {currentView === 'landing' && <Footer />}
+      {/* Footer on landing, paid, and favorites */}
+      {(currentView === 'landing' || currentView === 'paid' || currentView === 'favorites') && (
+        <Footer />
+      )}
 
       {/* Checkout Modal */}
       {checkoutItem && (
@@ -180,4 +233,3 @@ export const App: React.FC = () => {
     </div>
   );
 };
-

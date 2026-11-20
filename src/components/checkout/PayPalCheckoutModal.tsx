@@ -111,8 +111,8 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
       unlockToken: token,
     });
 
-    // 2. Unlock in book store
-    bookStore.unlockItem(item.id, token);
+    // 2. Unlock in book store and increment soldCount by +1
+    bookStore.unlockItem(item.id, token, true);
 
     // 3. Celebrate
     triggerCelebration();

@@ -32,9 +32,20 @@ import {
   Clock,
   Sparkles,
   Calendar,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Lock,
+  Flame,
+  ShieldAlert,
+  LogOut
 } from 'lucide-react';
 import { compress916Image } from '../../utils/imageCompressor';
+import { extractPagesFromPdfFile } from '../../utils/pdfPageExtractor';
+
+const ADMIN_SESSION_KEY = 'the_recipe_vault_admin_session_v1';
+const ADMIN_LOCKOUT_KEY = 'the_recipe_vault_admin_lockout_until_v1';
+const ADMIN_EMAIL = 'jax.geldenhuys@gmail.com';
+const ADMIN_PASS = 'Admin@recipes2026';
+const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface AdminPortalProps {
   onBackToApp: () => void;
@@ -42,6 +53,18 @@ interface AdminPortalProps {
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreviewBook }) => {
+  // Admin Auth & 24-Hour Lockout State (No Prefill, Persistent Device Session)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem(ADMIN_SESSION_KEY) === 'authenticated_jax_2026';
+  });
+  const [loginEmail, setLoginEmail] = useState<string>('');
+  const [loginPassword, setLoginPassword] = useState<string>('');
+  const [lockoutUntil, setLockoutUntil] = useState<number>(() => {
+    const saved = localStorage.getItem(ADMIN_LOCKOUT_KEY);
+    return saved ? parseInt(saved, 10) || 0 : 0;
+  });
+  const [authErrorMsg, setAuthErrorMsg] = useState<string>('');
+
   const [activeTab, setActiveTab] = useState<'upload' | 'sales' | 'promos' | 'bundles' | 'accounts'>('upload');
   const [books, setBooks] = useState<Book[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
@@ -55,6 +78,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('14.99');
   const [originalPrice, setOriginalPrice] = useState('29.99');
+  const [initialSoldCount, setInitialSoldCount] = useState('48');
+  const [soldCountInputs, setSoldCountInputs] = useState<Record<string, string>>({});
   const [recipeCount, setRecipeCount] = useState('30');
   const [previewLimit, setPreviewLimit] = useState('5');
   const [category, setCategory] = useState('Open-Fire & Grilling');
@@ -119,10 +144,63 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   }, []);
 
   const refreshData = () => {
-    setBooks(bookStore.getBooks());
+    const currentBooks = bookStore.getBooks();
+    setBooks(currentBooks);
     setBundles(bookStore.getBundles());
     setSales(salesStore.getSales());
     setPromos(promoStore.getPromos());
+
+    const initialMap: Record<string, string> = {};
+    currentBooks.forEach((b) => {
+      initialMap[b.id] = String(b.soldCount ?? 0);
+    });
+    setSoldCountInputs(initialMap);
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const now = Date.now();
+    if (lockoutUntil > now) {
+      return;
+    }
+
+    const enteredEmail = loginEmail.trim().toLowerCase();
+    const enteredPass = loginPassword;
+
+    if (enteredEmail === ADMIN_EMAIL.toLowerCase() && enteredPass === ADMIN_PASS) {
+      localStorage.setItem(ADMIN_SESSION_KEY, 'authenticated_jax_2026');
+      localStorage.removeItem(ADMIN_LOCKOUT_KEY);
+      setLockoutUntil(0);
+      setIsAdminAuthenticated(true);
+      setAuthErrorMsg('');
+    } else {
+      // 1 attempt provided -> Lock out for 24 hours on wrong attempt
+      const lockTime = now + LOCKOUT_DURATION_MS;
+      localStorage.setItem(ADMIN_LOCKOUT_KEY, String(lockTime));
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      setLockoutUntil(lockTime);
+      setAuthErrorMsg('Incorrect admin credentials. 1 attempt allowed — Admin login is now locked for 24 hours.');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    setIsAdminAuthenticated(false);
+    setLoginEmail('');
+    setLoginPassword('');
+  };
+
+  const handleUpdateBookSoldCount = (bookId: string) => {
+    const rawVal = soldCountInputs[bookId];
+    const parsed = parseInt(rawVal || '0', 10);
+    if (isNaN(parsed) || parsed < 0) {
+      alert('Please enter a valid number of recipes/books sold (0 or higher).');
+      return;
+    }
+    bookStore.updateBookSoldCount(bookId, parsed);
+    refreshData();
+    setUploadSuccessMsg(`Updated recipes sold counter to ${parsed}! Future sales will automatically add +1.`);
+    setTimeout(() => setUploadSuccessMsg(''), 3500);
   };
 
   const handleTitleChange = (val: string) => {
@@ -180,16 +258,40 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         uploadedPdfInfo = await storageService.uploadPdfFile(selectedPdf, 'books');
       }
 
-      const coverPage: any = {
-        id: `page-1-${Date.now()}`,
-        pageNumber: 1,
-        title: title,
-        subtitle: subtitle || 'Heritage Recipe Collection',
-        category: 'Cover',
-        isCover: true,
-        image: uploadedCoverUrl,
-        chefTip: 'Full-bleed 9:16 phone cover. Flip horizontally like a Kindle to read recipes.',
-      };
+      let bookPages: any[] = [];
+      if (selectedPdf) {
+        try {
+          const extracted = await extractPagesFromPdfFile(selectedPdf, title);
+          if (!selectedCoverFile && extracted.coverDataUrl) {
+            uploadedCoverUrl = extracted.coverDataUrl;
+          }
+          bookPages = extracted.pages;
+          if (selectedCoverFile && bookPages.length > 0) {
+            bookPages[0] = {
+              ...bookPages[0],
+              image: uploadedCoverUrl,
+              rawPdfPageUrl: uploadedCoverUrl,
+            };
+          }
+        } catch (pdfErr) {
+          console.warn('Could not extract PDF pages in browser, using cover page:', pdfErr);
+        }
+      }
+
+      if (bookPages.length === 0) {
+        const coverPage: any = {
+          id: `page-1-${Date.now()}`,
+          pageNumber: 1,
+          title: title,
+          subtitle: subtitle || 'Heritage Recipe Collection',
+          category: 'Cover',
+          isCover: true,
+          image: uploadedCoverUrl,
+          rawPdfPageUrl: uploadedCoverUrl,
+          chefTip: 'Full-bleed 9:16 phone cover. Flip horizontally like a Kindle to read recipes.',
+        };
+        bookPages = [coverPage];
+      }
 
       const newBook: Book = {
         id: `vault-book-${Date.now()}`,
@@ -201,6 +303,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         coverImage: uploadedCoverUrl,
         price: parseFloat(price) || 14.99,
         originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+        soldCount: Math.max(0, parseInt(initialSoldCount, 10) || 0),
         recipeCount: parseInt(recipeCount, 10) || 30,
         previewPagesAllowed: parseInt(previewLimit, 10) || 5,
         category,
@@ -208,7 +311,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         pdfFileUrl: uploadedPdfInfo?.url,
         pdfFileName: uploadedPdfInfo?.name || selectedPdf?.name,
         pdfFileSize: uploadedPdfInfo?.size || '15.0 MB',
-        pages: [coverPage], // Page 1 is the 9:16 full cover!
+        pages: bookPages,
         createdAt: new Date().toISOString(),
       };
 
@@ -366,6 +469,112 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   };
 
   const totalRevenue = salesStore.getTotalRevenue();
+  const nowTime = Date.now();
+  const isLockedOut = lockoutUntil > nowTime;
+  const remainingLockoutMs = Math.max(0, lockoutUntil - nowTime);
+  const remainingHours = Math.floor(remainingLockoutMs / (1000 * 60 * 60));
+  const remainingMinutes = Math.ceil((remainingLockoutMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  // Admin Login Security Gate (No Prefill, 1 Attempt Only -> 24-Hour Lockout, Persistent Device Login)
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#100f0e] text-[#f2efe9] flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#181614] border border-[#332b23] rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div className="flex flex-col items-center text-center mb-6">
+            <img
+              src="/assets/images/logo.png"
+              alt="The Recipe Vault Co."
+              className="w-14 h-14 rounded-2xl object-contain border border-[#cf7b3e]/40 shadow-lg mb-3"
+            />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-[#dea374] bg-[#261f19] px-3 py-1 rounded-full border border-[#cf7b3e]/30">
+              PROTECTED PUBLISHER PORTAL
+            </span>
+            <h1 className="font-serif text-2xl font-bold text-white mt-2">
+              Admin Security Sign-In
+            </h1>
+            <p className="text-xs text-[#9c9387] mt-1">
+              1 attempt permitted. Your device remains logged in across page reloads once verified.
+            </p>
+          </div>
+
+          {isLockedOut ? (
+            <div className="bg-rose-950/60 border border-rose-500/50 rounded-2xl p-5 text-center space-y-3">
+              <ShieldAlert className="w-10 h-10 text-rose-400 mx-auto" />
+              <h2 className="font-serif font-bold text-base text-white">
+                Admin Access Locked for 24 Hours
+              </h2>
+              <p className="text-xs text-rose-200 leading-relaxed">
+                An incorrect login attempt was recorded. For security, login is locked on this device for <strong>{remainingHours}h {remainingMinutes}m</strong>.
+              </p>
+              <button
+                type="button"
+                onClick={onBackToApp}
+                className="w-full mt-2 py-2.5 rounded-xl bg-[#27221d] hover:bg-[#352f28] text-xs font-semibold text-white border border-[#443b32] transition-all"
+              >
+                Return to Storefront
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleAdminLogin} autoComplete="off" className="space-y-4">
+              {authErrorMsg && (
+                <div className="bg-rose-950/60 border border-rose-500/50 text-rose-300 text-xs p-3 rounded-xl">
+                  {authErrorMsg}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-[#c4bcae] mb-1.5">
+                  Admin Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="off"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="Enter admin email"
+                  className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#c4bcae] mb-1.5">
+                  Admin Password *
+                </label>
+                <input
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                />
+              </div>
+
+              <div className="pt-2 space-y-2.5">
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#cf7b3e]/25 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Unlock Admin Portal (Keep Device Signed In)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onBackToApp}
+                  className="w-full py-2.5 rounded-xl bg-[#221d19] hover:bg-[#2d2721] text-xs font-semibold text-[#b8afa3] hover:text-white border border-[#383027] transition-all"
+                >
+                  Cancel &amp; Return to Storefront
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#100f0e] text-[#f2efe9] pb-16">
@@ -382,17 +591,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
               Admin & Publisher Control Center
             </h1>
             <p className="text-[11px] text-[#dea374]">
-              The Recipe Vault Co. • Mobile & Web Digital Management
+              The Recipe Vault Co. • Device Persistently Authenticated
             </p>
           </div>
         </div>
 
-        <button
-          onClick={onBackToApp}
-          className="px-3.5 py-1.5 rounded-full bg-[#27221d] hover:bg-[#352f28] text-xs font-semibold text-white border border-[#443b32] transition-all"
-        >
-          Exit to App
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleAdminLogout}
+            title="Lock Admin Session on this device"
+            className="px-3 py-1.5 rounded-full bg-[#221c17] hover:bg-rose-950 text-xs font-medium text-[#b5aca0] hover:text-rose-300 border border-[#383027] transition-all flex items-center gap-1"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Lock Admin</span>
+          </button>
+
+          <button
+            onClick={onBackToApp}
+            className="px-3.5 py-1.5 rounded-full bg-[#27221d] hover:bg-[#352f28] text-xs font-semibold text-white border border-[#443b32] transition-all"
+          >
+            Exit to App
+          </button>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
@@ -512,7 +732,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-[#c4bcae] mb-1">
                       Price in Dollars ($ USD) *
@@ -560,6 +780,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                       className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
                     />
                     <span className="text-[10px] text-[#7d756a]">Default: 5 pages free</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#dea374] mb-1">
+                      Recipes Sold Counter
+                    </label>
+                    <div className="relative">
+                      <Flame className="w-3.5 h-3.5 absolute left-3 top-2.5 text-amber-400" />
+                      <input
+                        type="number"
+                        min="0"
+                        value={initialSoldCount}
+                        onChange={(e) => setInitialSoldCount(e.target.value)}
+                        placeholder="48"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+                    <span className="text-[10px] text-amber-400/90">Auto +1 on each sale</span>
                   </div>
                 </div>
 
@@ -727,45 +965,76 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                   {books.map((b) => (
                     <div 
                       key={b.id} 
-                      className="bg-[#1f1b17] p-3 rounded-2xl border border-[#322a22] flex items-center justify-between gap-3"
+                      className="bg-[#1f1b17] p-3.5 rounded-2xl border border-[#322a22] space-y-2.5"
                     >
-                      <div className="flex items-center gap-3 truncate">
-                        <img 
-                          src={b.coverImage} 
-                          alt={b.title} 
-                          className="w-10 h-12 rounded object-cover border border-[#44372c]" 
-                        />
-                        <div className="truncate">
-                          <h4 className="text-xs font-bold text-white truncate">{b.title}</h4>
-                          <div className="flex items-center gap-2 text-[10px] text-[#a1998f] mt-0.5">
-                            <span className="text-[#dea374] font-semibold">${b.price.toFixed(2)} USD</span>
-                            <span>•</span>
-                            <span>{b.previewPagesAllowed} Free Pages</span>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 truncate">
+                          <img 
+                            src={b.coverImage} 
+                            alt={b.title} 
+                            className="w-10 h-14 rounded object-cover border border-[#44372c]" 
+                          />
+                          <div className="truncate">
+                            <h4 className="text-xs font-bold text-white truncate">{b.title}</h4>
+                            <div className="flex items-center gap-2 text-[10px] text-[#a1998f] mt-0.5">
+                              <span className="text-[#dea374] font-semibold">${b.price.toFixed(2)} USD</span>
+                              <span>•</span>
+                              <span>{b.previewPagesAllowed} Free Pages</span>
+                            </div>
+                            <span className="text-[9px] text-[#777] font-mono">/book/{b.slug}</span>
                           </div>
-                          <span className="text-[9px] text-[#777] font-mono">/book/{b.slug}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => onPreviewBook(b.slug)}
+                            title="Preview 3D Flip Book"
+                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-[#3d342b] text-[#dea374]"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Delete "${b.title}"? This will permanently remove it from Cloudflare R2 cloud, code, and storefront.`)) {
+                                await bookStore.deleteBook(b.id);
+                                refreshData();
+                              }
+                            }}
+                            title="Delete Book from Cloud & Storefront"
+                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-rose-950 text-rose-400 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => onPreviewBook(b.slug)}
-                          title="Preview in Kindle Reader"
-                          className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-[#3d342b] text-[#dea374]"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Delete "${b.title}"? This will permanently remove it from Cloudflare R2 cloud, code, and storefront.`)) {
-                              await bookStore.deleteBook(b.id);
-                              refreshData();
+                      {/* Inline Recipes Sold Counter Setter (Auto +1 on each sale) */}
+                      <div className="pt-2 border-t border-[#2d261f] flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 text-[10px] text-amber-300 font-semibold">
+                          <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                          <span>Sold: {b.soldCount ?? 0} (Auto +1/sale)</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="0"
+                            value={soldCountInputs[b.id] ?? String(b.soldCount ?? 0)}
+                            onChange={(e) =>
+                              setSoldCountInputs((prev) => ({
+                                ...prev,
+                                [b.id]: e.target.value,
+                              }))
                             }
-                          }}
-                          title="Delete Book from Cloud & Storefront"
-                          className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-rose-950 text-rose-400 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                            className="w-16 bg-[#121110] border border-[#3a3128] rounded-lg px-2 py-1 text-[11px] text-white text-center focus:outline-none focus:border-[#cf7b3e]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateBookSoldCount(b.id)}
+                            className="px-2.5 py-1 rounded-lg bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-[10px] font-bold transition-all"
+                          >
+                            Set Sold #
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

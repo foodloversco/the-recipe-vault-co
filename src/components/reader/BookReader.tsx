@@ -1,28 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Book, RecipePage } from '../../types';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Printer, 
-  Lock, 
-  Unlock, 
-  Share2, 
-  Maximize2, 
-  Minimize2, 
-  List, 
-  Clock, 
-  Flame, 
-  Users, 
-  CheckSquare, 
-  Sparkles, 
+import { bookStore } from '../../services/bookStore';
+import { loadPdfDocument, renderSinglePdfPage } from '../../utils/pdfPageExtractor';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Printer,
+  Lock,
+  Unlock,
+  Share2,
+  Maximize2,
+  Minimize2,
+  List,
+  Clock,
+  Flame,
+  Users,
+  CheckSquare,
   X,
   CreditCard,
-  FileText
+  Heart,
+  Volume2,
+  VolumeX,
+  Download,
+  Loader2,
+  BookOpen
 } from 'lucide-react';
 
 interface BookReaderProps {
   book: Book;
   isUnlocked: boolean;
+  initialPage?: number;
   onBack: () => void;
   onOpenCheckout: (item: { id: string; type: 'book'; title: string; price: number; originalPrice?: number }) => void;
   onUnlockSuccess: () => void;
@@ -31,32 +38,207 @@ interface BookReaderProps {
 export const BookReader: React.FC<BookReaderProps> = ({
   book,
   isUnlocked,
+  initialPage,
   onBack,
   onOpenCheckout,
-  onUnlockSuccess
+  onUnlockSuccess,
 }) => {
-  const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
+  const [currentPageIndex, setCurrentPageIndex] = useState<number>(
+    initialPage && initialPage > 0 ? initialPage - 1 : 0
+  );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showToc, setShowToc] = useState<boolean>(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [tokenInput, setTokenInput] = useState<string>('');
   const [tokenError, setTokenError] = useState<string>('');
-  const [isFlipping, setIsFlipping] = useState<'next' | 'prev' | null>(null);
+  const [, setFavTick] = useState<number>(0);
+
+  // 3D Page Flip Animation State
+  const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
+  const [flipProgress, setFlipProgress] = useState<boolean>(false);
+  const [turningFromImage, setTurningFromImage] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  // Live PDF Document Rendering State
+  const pdfDocRef = useRef<any>(null);
+  const [pdfNumPages, setPdfNumPages] = useState<number>(0);
+  const [renderedPdfPages, setRenderedPdfPages] = useState<Record<number, string>>({});
+  const [isLoadingPdfPage, setIsLoadingPdfPage] = useState<boolean>(false);
 
   const pages = book.pages || [];
-  const totalPages = pages.length > 0 ? pages.length : 30;
+  const totalPages = pdfNumPages > 0 ? pdfNumPages : pages.length > 0 ? pages.length : 30;
   const previewLimit = book.previewPagesAllowed || 5;
 
+  const currentPageNumber = currentPageIndex + 1;
   const currentPage: RecipePage | undefined = pages[currentPageIndex];
   const isPageLocked = !isUnlocked && currentPageIndex >= previewLimit;
 
-  // Handle URL hash or query update for unique book link
+  // Synthesize a subtle, realistic paper page-flip rustle sound via Web Audio API
+  const playPageFlipSound = () => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const duration = 0.16;
+      const bufferSize = ctx.sampleRate * duration;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        const env = Math.sin((i / bufferSize) * Math.PI);
+        data[i] = (Math.random() * 2 - 1) * env * 0.12;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1100, ctx.currentTime);
+      filter.Q.setValueAtTime(1.8, ctx.currentTime);
+
+      noise.connect(filter);
+      filter.connect(ctx.destination);
+      noise.start();
+    } catch {
+      // Ignore audio context restrictions
+    }
+  };
+
+  // Load actual uploaded PDF document when book opens
+  useEffect(() => {
+    let cancelled = false;
+    if (!book.pdfFileUrl) return;
+
+    (async () => {
+      try {
+        setIsLoadingPdfPage(true);
+        const doc = await loadPdfDocument(book.pdfFileUrl!);
+        if (cancelled) return;
+        pdfDocRef.current = doc;
+        setPdfNumPages(doc.numPages);
+
+        // Immediately render Page 1 and Page 2
+        const p1 = await renderSinglePdfPage(doc, 1, 900);
+        if (cancelled) return;
+        setRenderedPdfPages((prev) => ({ ...prev, 1: p1 }));
+        setIsLoadingPdfPage(false);
+
+        if (doc.numPages >= 2) {
+          const p2 = await renderSinglePdfPage(doc, 2, 850);
+          if (!cancelled) {
+            setRenderedPdfPages((prev) => ({ ...prev, 2: p2 }));
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load live PDF via pdfjs, falling back to book.pages:', err);
+        if (!cancelled) setIsLoadingPdfPage(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [book.pdfFileUrl]);
+
+  // Render current & next PDF pages on demand as user flips
+  useEffect(() => {
+    let cancelled = false;
+    const doc = pdfDocRef.current;
+    if (!doc) return;
+
+    const pagesToEnsure = [currentPageNumber, currentPageNumber + 1, currentPageNumber - 1].filter(
+      (p) => p >= 1 && p <= doc.numPages
+    );
+
+    (async () => {
+      for (const pNum of pagesToEnsure) {
+        if (renderedPdfPages[pNum]) continue;
+        if (pNum === currentPageNumber) setIsLoadingPdfPage(true);
+        try {
+          const url = await renderSinglePdfPage(doc, pNum, 880);
+          if (!cancelled) {
+            setRenderedPdfPages((prev) => ({ ...prev, [pNum]: url }));
+          }
+        } catch (e) {
+          console.warn('Failed to render PDF page', pNum, e);
+        } finally {
+          if (!cancelled && pNum === currentPageNumber) setIsLoadingPdfPage(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPageNumber, pdfNumPages]);
+
+  // Handle URL query update for unique book link
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.set('book', book.slug);
     window.history.replaceState({}, '', url.toString());
   }, [book.slug]);
+
+  const getActivePageImage = (pageIdx: number): string | null => {
+    const pNum = pageIdx + 1;
+    if (renderedPdfPages[pNum]) return renderedPdfPages[pNum];
+    const pObj = pages[pageIdx];
+    if (pObj?.rawPdfPageUrl) return pObj.rawPdfPageUrl;
+    if (pObj?.isCover && (pObj.image || book.coverImage)) return pObj.image || book.coverImage;
+    if (pageIdx === 0 && book.coverImage) return book.coverImage;
+    return null;
+  };
+
+  // Trigger real 3D page turn forward
+  const handleNextPage = () => {
+    if (currentPageIndex < totalPages - 1 && !flipDirection) {
+      const currentImg = getActivePageImage(currentPageIndex);
+      setTurningFromImage(currentImg);
+      setFlipDirection('next');
+      setFlipProgress(false);
+      playPageFlipSound();
+
+      // Advance underlying page so it reveals underneath the turning 3D sheet
+      setCurrentPageIndex((prev) => prev + 1);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setFlipProgress(true);
+        });
+      });
+
+      setTimeout(() => {
+        setFlipDirection(null);
+        setFlipProgress(false);
+        setTurningFromImage(null);
+      }, 520);
+    }
+  };
+
+  // Trigger real 3D page turn backward
+  const handlePrevPage = () => {
+    if (currentPageIndex > 0 && !flipDirection) {
+      const targetImg = getActivePageImage(currentPageIndex - 1);
+      setTurningFromImage(targetImg);
+      setFlipDirection('prev');
+      setFlipProgress(false);
+      playPageFlipSound();
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setFlipProgress(true);
+        });
+      });
+
+      setTimeout(() => {
+        setCurrentPageIndex((prev) => prev - 1);
+        setFlipDirection(null);
+        setFlipProgress(false);
+        setTurningFromImage(null);
+      }, 520);
+    }
+  };
 
   // Keyboard navigation like Kindle
   useEffect(() => {
@@ -71,27 +253,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPageIndex, isUnlocked]);
-
-  const handleNextPage = () => {
-    if (currentPageIndex < totalPages - 1) {
-      setIsFlipping('next');
-      setTimeout(() => {
-        setCurrentPageIndex((prev) => prev + 1);
-        setIsFlipping(null);
-      }, 150);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPageIndex > 0) {
-      setIsFlipping('prev');
-      setTimeout(() => {
-        setCurrentPageIndex((prev) => prev - 1);
-        setIsFlipping(null);
-      }, 150);
-    }
-  };
+  }, [currentPageIndex, isUnlocked, totalPages, flipDirection]);
 
   // Touch Swipe Handling for Phone
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -103,11 +265,9 @@ export const BookReader: React.FC<BookReaderProps> = ({
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartX - touchEndX;
 
-    if (diff > 45) {
-      // Swiped Left -> Next page
+    if (diff > 40) {
       handleNextPage();
-    } else if (diff < -45) {
-      // Swiped Right -> Prev page
+    } else if (diff < -40) {
       handlePrevPage();
     }
     setTouchStartX(null);
@@ -138,10 +298,30 @@ export const BookReader: React.FC<BookReaderProps> = ({
     }
   };
 
+  const activePdfSlideUrl = getActivePageImage(currentPageIndex);
+  const currentSyntheticRecipe: RecipePage = currentPage || {
+    id: `pdf-p-${currentPageNumber}`,
+    pageNumber: currentPageNumber,
+    title: currentPageNumber === 1 ? book.title : `${book.title} • Page ${currentPageNumber}`,
+    subtitle: `Page ${currentPageNumber} of ${totalPages}`,
+    category: currentPageNumber === 1 ? 'Cover' : 'Heritage Mains',
+    image: activePdfSlideUrl || book.coverImage,
+    isCover: currentPageNumber === 1,
+  };
+
+  const isCurrentLiked =
+    currentPageNumber === 1
+      ? bookStore.isBookFavorited(book.id)
+      : bookStore.isRecipeFavorited(book.id, currentPageNumber);
+
   return (
-    <div className={`min-h-screen bg-[#0e0d0c] text-white flex flex-col items-center select-none ${isFullscreen ? 'p-0' : 'p-2 sm:p-6'}`}>
+    <div
+      className={`min-h-screen bg-[#0e0d0c] text-white flex flex-col items-center select-none ${
+        isFullscreen ? 'p-0' : 'p-2 sm:p-6'
+      }`}
+    >
       {/* Top Floating Control Bar */}
-      <div className="w-full max-w-4xl flex items-center justify-between pb-3 px-2 border-b border-[#25221e] mb-4">
+      <div className="w-full max-w-4xl flex items-center justify-between pb-3 px-2 border-b border-[#25221e] mb-3">
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-xs sm:text-sm text-[#c2bcaf] hover:text-white bg-[#1c1a18] px-3 py-1.5 rounded-full border border-[#302c27] transition-all"
@@ -151,36 +331,87 @@ export const BookReader: React.FC<BookReaderProps> = ({
         </button>
 
         {/* Title & Preview Indicator */}
-        <div className="text-center px-2 truncate max-w-[200px] sm:max-w-md">
+        <div className="text-center px-2 truncate max-w-[190px] sm:max-w-md">
           <h2 className="text-xs sm:text-sm font-semibold truncate text-[#f2efe9]">
             {book.title}
           </h2>
-          <div className="flex items-center justify-center gap-1 text-[11px] text-[#a8a196]">
-            <span>Page {currentPageIndex + 1} of {totalPages}</span>
-            {!isUnlocked && (
-              <span className="ml-1 text-[10px] text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-600/30">
-                Preview ({Math.min(currentPageIndex + 1, previewLimit)}/5)
+          <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#a8a196]">
+            <span>
+              Page {currentPageNumber} of {totalPages}
+            </span>
+            {!isUnlocked ? (
+              <span className="text-[10px] text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-600/30">
+                Free Preview ({Math.min(currentPageNumber, previewLimit)}/{previewLimit})
+              </span>
+            ) : (
+              <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                Full PDF Unlocked
               </span>
             )}
           </div>
         </div>
 
-        {/* Action Buttons: TOC, Print, Share, Fullscreen */}
+        {/* Action Buttons: Favorite Recipe, Flip Sound, TOC, Print, Share, Fullscreen */}
         <div className="flex items-center gap-1.5">
           <button
+            onClick={() => {
+              if (currentPageNumber > 1) {
+                bookStore.toggleFavoriteRecipe(book, currentSyntheticRecipe);
+              } else {
+                bookStore.toggleFavoriteBook(book.id);
+              }
+              setFavTick((t) => t + 1);
+            }}
+            title={
+              currentPageNumber > 1
+                ? 'Like & Save This Recipe Page to Favorites'
+                : 'Like & Save Book to Favorites / Wishlist'
+            }
+            className={`px-2.5 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1 transition-all ${
+              isCurrentLiked
+                ? 'bg-rose-600 text-white border-rose-400 shadow-md'
+                : 'bg-[#1c1a18] border-rose-500/30 text-rose-400 hover:bg-rose-950/60'
+            }`}
+          >
+            <Heart className={`w-3.5 h-3.5 ${isCurrentLiked ? 'fill-white text-white' : 'text-rose-400'}`} />
+            <span className="hidden sm:inline">{isCurrentLiked ? 'Saved' : 'Like'}</span>
+          </button>
+
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            title={soundEnabled ? 'Mute Page-Turn Sound' : 'Enable Page-Turn Sound'}
+            className="p-2 rounded-full bg-[#1c1a18] border border-[#302c27] text-[#dea374] hover:bg-[#2b2722]"
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-[#777]" />}
+          </button>
+
+          <button
             onClick={() => setShowToc(!showToc)}
-            title="Table of Contents"
+            title="Jump to Page / Table of Contents"
             className="p-2 rounded-full bg-[#1c1a18] border border-[#302c27] text-[#cf7b3e] hover:bg-[#2b2722]"
           >
             <List className="w-4 h-4" />
           </button>
 
+          {isUnlocked && book.pdfFileUrl && (
+            <a
+              href={book.pdfFileUrl}
+              download={book.pdfFileName || `${book.slug}.pdf`}
+              target="_blank"
+              rel="noreferrer"
+              title="Download Full Original PDF"
+              className="p-2 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900"
+            >
+              <Download className="w-4 h-4" />
+            </a>
+          )}
+
           <button
             onClick={handlePrint}
-            title={isUnlocked ? "Print Current Recipe Card" : "Unlock to print"}
+            title={isUnlocked ? 'Print Current Recipe Page' : 'Unlock to print'}
             className={`p-2 rounded-full border transition-all ${
-              isUnlocked 
-                ? 'bg-[#1c1a18] border-[#302c27] text-white hover:bg-[#2b2722] hover:text-[#dea374]' 
+              isUnlocked
+                ? 'bg-[#1c1a18] border-[#302c27] text-white hover:bg-[#2b2722] hover:text-[#dea374]'
                 : 'bg-[#161413] border-[#222] text-[#666] cursor-not-allowed'
             }`}
           >
@@ -197,7 +428,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            title="Toggle Phone Frame / Fullscreen"
+            title="Toggle Fullscreen Reader"
             className="p-2 rounded-full bg-[#1c1a18] border border-[#302c27] text-[#c2bcaf] hover:text-white hover:bg-[#2b2722] hidden sm:block"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -211,157 +442,225 @@ export const BookReader: React.FC<BookReaderProps> = ({
         </div>
       )}
 
-      {/* Main Reader Container: EXACT default phone size 360 x 600 */}
-      <div 
+      {/* Main 3D Flip Book Frame (9:16 Vertical Phone Scale) */}
+      <div
         className={`relative transition-all duration-300 flex flex-col justify-between overflow-hidden ${
-          isFullscreen 
-            ? 'w-full max-w-[420px] h-[92vh] rounded-none sm:rounded-3xl' 
-            : 'w-[360px] h-[600px] rounded-[36px] shadow-2xl border-[8px] border-[#25221e]'
-        } bg-[#181614] shadow-kindle`}
+          isFullscreen
+            ? 'w-full max-w-[430px] h-[92vh] rounded-none sm:rounded-3xl'
+            : 'w-[360px] sm:w-[380px] h-[640px] sm:h-[675px] rounded-[36px] shadow-2xl border-[7px] border-[#25221e]'
+        } bg-[#141210] shadow-kindle`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Phone Speaker Notch Header (Kindle mobile bezel style) */}
-        <div className="h-6 w-full bg-[#121110] flex items-center justify-between px-6 text-[10px] text-[#706a62] select-none border-b border-[#211f1c]">
-          <span>9:41</span>
+        {/* Top Phone Bezel Bar */}
+        <div className="h-6 w-full bg-[#121110] flex items-center justify-between px-6 text-[10px] text-[#706a62] select-none border-b border-[#211f1c] z-30">
+          <span>3D FLIP BOOK</span>
           <div className="w-12 h-1.5 bg-[#25221e] rounded-full"></div>
-          <div className="flex items-center gap-1 font-mono">
-            <span>VAULT</span>
-            <span>100%</span>
+          <div className="flex items-center gap-1 font-mono text-[#dea374]">
+            <span>P.{currentPageNumber}</span>
           </div>
         </div>
 
-        {/* Page Content Body */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden relative p-4 print:p-0 print:overflow-visible flex flex-col justify-between">
-          {/* If Page is Locked: Show Elegant Paywall */}
-          {isPageLocked ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-4 bg-gradient-to-b from-[#211a14] via-[#1a1612] to-[#12100e] rounded-2xl border border-[#cf7b3e]/30">
-              <div className="w-16 h-16 rounded-full bg-[#cf7b3e]/20 border border-[#cf7b3e] flex items-center justify-center mb-4 text-[#dea374] animate-pulse">
-                <Lock className="w-8 h-8" />
-              </div>
+        {/* 3D Perspective Stage */}
+        <div
+          className="flex-1 relative overflow-hidden bg-[#0e0c0a] flex flex-col justify-between"
+          style={{ perspective: '1600px' }}
+        >
+          {/* Left Book Spine Crease & Realism Shadow */}
+          <div
+            className="absolute inset-y-0 left-0 w-5 z-20 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to right, rgba(0,0,0,0.65) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.22) 70%, transparent 100%)',
+            }}
+          />
 
-              <span className="text-[11px] font-bold tracking-widest uppercase text-[#dea374] mb-1">
-                PREVIEW LIMIT REACHED
-              </span>
-
-              <h3 className="font-serif text-xl font-bold text-white mb-2 leading-tight">
-                Unlock the Full 30-Recipe Collection
-              </h3>
-
-              <p className="text-xs text-[#b8b0a5] mb-4 leading-relaxed">
-                You’ve explored the first 5 free preview cards. Unlock all 30 phone-ready recipes, full step-by-step master guides, and one-stop grocery checklists for this collection.
-              </p>
-
-              <div className="w-full bg-[#27211b] p-3 rounded-xl border border-[#3f352c] mb-4">
-                <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-3xl font-extrabold text-white">${book.price.toFixed(2)}</span>
-                  {book.originalPrice && (
-                    <span className="text-xs line-through text-[#827a70]">${book.originalPrice.toFixed(2)}</span>
-                  )}
-                  <span className="text-[11px] text-[#dea374] font-medium">USD</span>
-                </div>
-                <p className="text-[10px] text-[#9c9388] mt-0.5">One-time purchase • Instant Phone & PDF Access</p>
-              </div>
-
-              {/* PayPal Checkout Trigger Button */}
-              <button
-                onClick={() => onOpenCheckout({ id: book.id, type: 'book', title: book.title, price: book.price, originalPrice: book.originalPrice })}
-                className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-3"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Buy Now with PayPal (${book.price.toFixed(2)})</span>
-              </button>
-
-              {/* Already purchased unlock code input */}
-              <form onSubmit={handleValidateToken} className="w-full mt-2 pt-2 border-t border-[#2e2720]">
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    placeholder="Already bought? Enter token"
-                    className="flex-1 bg-[#141210] border border-[#3b332b] rounded-lg px-2.5 py-1 text-xs text-white placeholder-[#6c655b] focus:outline-none focus:border-[#cf7b3e]"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-[#2e2720] hover:bg-[#3d332a] text-[#dea374] text-xs font-semibold px-3 py-1 rounded-lg border border-[#443a2f]"
-                  >
-                    Unlock
-                  </button>
-                </div>
-                {tokenError && <p className="text-[10px] text-rose-400 mt-1">{tokenError}</p>}
-              </form>
-
-              <button
-                onClick={() => setCurrentPageIndex(0)}
-                className="mt-3 text-[11px] text-[#938b80] hover:text-white underline"
-              >
-                Return to Cover
-              </button>
+          {/* 3D Turning Page Leaf Overlay (Animates around the left book spine!) */}
+          {flipDirection && (
+            <div
+              className="absolute inset-0 z-30 pointer-events-none overflow-hidden rounded-r-xl"
+              style={{
+                transformOrigin: 'left center',
+                transformStyle: 'preserve-3d',
+                transition: 'transform 520ms cubic-bezier(0.645, 0.045, 0.355, 1), box-shadow 520ms ease',
+                transform:
+                  flipDirection === 'next'
+                    ? flipProgress
+                      ? 'rotateY(-180deg)'
+                      : 'rotateY(0deg)'
+                    : flipProgress
+                    ? 'rotateY(0deg)'
+                    : 'rotateY(-180deg)',
+                boxShadow: flipProgress
+                  ? '-20px 0 50px rgba(0,0,0,0.85)'
+                  : '25px 0 60px rgba(0,0,0,0.9)',
+              }}
+            >
+              {turningFromImage ? (
+                <img
+                  src={turningFromImage}
+                  alt="Turning Page"
+                  className="w-full h-full object-contain bg-[#141210]"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-[#241e18] via-[#1c1814] to-[#141210]" />
+              )}
+              {/* Dynamic Page-Curl Specular Highlight & Shadow */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(255,235,205,0.16) 25%, rgba(0,0,0,0.05) 65%, rgba(0,0,0,0.6) 100%)',
+                }}
+              />
             </div>
-          ) : currentPage ? (
-            /* Render Current Page Content */
-            <div className={`h-full flex flex-col justify-between transition-transform duration-200 ${isFlipping === 'next' ? 'translate-x-1 opacity-90' : isFlipping === 'prev' ? '-translate-x-1 opacity-90' : ''}`}>
-              {/* Cover Page (Page 1) - Full 9:16 Phone Cover Display */}
-              {currentPage.isCover ? (
-                <div 
-                  className="h-full w-full relative flex flex-col justify-between overflow-hidden rounded-2xl group cursor-pointer select-none" 
-                  onClick={handleNextPage}
-                >
-                  {/* Full 9:16 Cover Image Background */}
-                  <img 
-                    src={currentPage.image || book.coverImage} 
-                    alt={book.title} 
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                  />
+          )}
 
-                  {/* Subtle Top & Bottom Cinematic Vignette */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none" />
+          {/* Main Active Page Area */}
+          {isPageLocked ? (
+            /* Paywall on Page 6+ when not unlocked */
+            <div className="h-full relative flex flex-col items-center justify-center text-center p-5 bg-gradient-to-b from-[#211a14] via-[#1a1612] to-[#12100e]">
+              {/* Blurred PDF Page Preview Behind Paywall */}
+              {activePdfSlideUrl && (
+                <img
+                  src={activePdfSlideUrl}
+                  alt="Locked PDF Page"
+                  className="absolute inset-0 w-full h-full object-cover opacity-20 blur-md pointer-events-none"
+                />
+              )}
 
-                  {/* Top Brand Header */}
-                  <div className="relative z-10 p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <img 
-                        src="/assets/images/logo.png" 
-                        alt="Logo" 
-                        className="w-8 h-8 rounded-full border border-[#dea374]/60 object-contain" 
-                      />
-                      <div>
-                        <span className="text-[9px] uppercase tracking-widest font-bold text-[#dea374] block">
-                          THE RECIPE VAULT CO.
-                        </span>
-                        <span className="text-[10px] text-white/90 font-serif">PAGE 1 • COVER</span>
-                      </div>
-                    </div>
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full bg-[#cf7b3e]/20 border border-[#cf7b3e] flex items-center justify-center mb-4 text-[#dea374] animate-pulse">
+                  <Lock className="w-8 h-8" />
+                </div>
 
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/60 border border-white/20 text-[#dea374] font-semibold">
-                      9:16 COLLECTIBLE
-                    </span>
+                <span className="text-[11px] font-bold tracking-widest uppercase text-[#dea374] mb-1">
+                  FREE 5-PAGE PREVIEW COMPLETED
+                </span>
+
+                <h3 className="font-serif text-xl font-bold text-white mb-2 leading-tight">
+                  Unlock All {totalPages} Pages of {book.title}
+                </h3>
+
+                <p className="text-xs text-[#b8b0a5] mb-4 leading-relaxed">
+                  You’ve flipped through the first {previewLimit} free pages. Unlock the complete {totalPages}-page 3D flip book and downloadable printable PDF immediately.
+                </p>
+
+                <div className="w-full bg-[#27211b]/95 p-3 rounded-xl border border-[#3f352c] mb-4">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-3xl font-extrabold text-white">${book.price.toFixed(2)}</span>
+                    {book.originalPrice && (
+                      <span className="text-xs line-through text-[#827a70]">
+                        ${book.originalPrice.toFixed(2)}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-[#dea374] font-medium">USD</span>
                   </div>
+                  <p className="text-[10px] text-[#9c9388] mt-0.5">
+                    One-time purchase • Instant Full Book &amp; PDF Download
+                  </p>
+                </div>
 
-                  {/* Bottom Title & Tap to Flip Prompt */}
-                  <div className="relative z-10 p-5 pt-8 text-center">
-                    <h1 className="font-serif text-xl sm:text-2xl font-bold text-white leading-tight drop-shadow-md">
-                      {book.title}
-                    </h1>
-                    <p className="text-xs text-[#dea374] mt-1 font-serif italic drop-shadow">
-                      {currentPage.subtitle || book.subtitle}
-                    </p>
+                <button
+                  onClick={() =>
+                    onOpenCheckout({
+                      id: book.id,
+                      type: 'book',
+                      title: book.title,
+                      price: book.price,
+                      originalPrice: book.originalPrice,
+                    })
+                  }
+                  className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-3"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Buy &amp; Unlock Full Book (${book.price.toFixed(2)})</span>
+                </button>
 
+                <form onSubmit={handleValidateToken} className="w-full mt-2 pt-2 border-t border-[#2e2720]">
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={tokenInput}
+                      onChange={(e) => setTokenInput(e.target.value)}
+                      placeholder="Already bought? Enter RV-... token"
+                      className="flex-1 bg-[#141210] border border-[#3b332b] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-[#6c655b] focus:outline-none focus:border-[#cf7b3e]"
+                    />
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNextPage();
-                      }}
-                      className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs tracking-wider uppercase shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95"
+                      type="submit"
+                      className="bg-[#2e2720] hover:bg-[#3d332a] text-[#dea374] text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#443a2f]"
                     >
-                      <span>Tap to Start Reading (Page 2)</span>
-                      <ChevronRight className="w-4 h-4" />
+                      Unlock
                     </button>
                   </div>
+                  {tokenError && <p className="text-[10px] text-rose-400 mt-1">{tokenError}</p>}
+                </form>
+
+                <button
+                  onClick={() => setCurrentPageIndex(0)}
+                  className="mt-3 text-[11px] text-[#dea374] hover:text-white underline"
+                >
+                  ← Flip Back to Page 1 Cover
+                </button>
+              </div>
+            </div>
+          ) : activePdfSlideUrl ? (
+            /* Full-Bleed 9:16 Rendered PDF Page (with left/right tap zones to flip like a real book!) */
+            <div className="h-full w-full relative flex items-center justify-center bg-[#0e0c0a] overflow-hidden group">
+              <img
+                src={activePdfSlideUrl}
+                alt={`${book.title} - Page ${currentPageNumber}`}
+                className="w-full h-full object-contain select-none"
+              />
+
+              {isLoadingPdfPage && (
+                <div className="absolute top-3 right-3 bg-black/75 px-2.5 py-1 rounded-full flex items-center gap-1.5 text-[10px] text-[#dea374] border border-[#cf7b3e]/30">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Rendering HD Page...</span>
                 </div>
-              ) : currentPage.isChecklist ? (
-                /* Master Grocery Checklist Page */
+              )}
+
+              {/* Left Edge Tap Zone (Flip Backward) */}
+              {currentPageIndex > 0 && (
+                <div
+                  onClick={handlePrevPage}
+                  title="Click or Tap Left Edge to Flip Back"
+                  className="absolute inset-y-0 left-0 w-1/4 z-10 cursor-pointer flex items-center justify-start pl-2 opacity-0 hover:opacity-100 transition-opacity"
+                >
+                  <div className="bg-black/60 backdrop-blur-sm p-2 rounded-full border border-white/15 text-white shadow-lg">
+                    <ChevronLeft className="w-5 h-5" />
+                  </div>
+                </div>
+              )}
+
+              {/* Right Edge Tap Zone (Flip Forward) */}
+              {currentPageIndex < totalPages - 1 && (
+                <div
+                  onClick={handleNextPage}
+                  title="Click or Tap Right Edge to Flip Page"
+                  className="absolute inset-y-0 right-0 w-2/3 z-10 cursor-pointer flex items-center justify-end pr-2 opacity-0 hover:opacity-100 transition-opacity"
+                >
+                  <div className="bg-black/60 backdrop-blur-sm p-2 rounded-full border border-white/15 text-[#dea374] shadow-lg">
+                    <ChevronRight className="w-5 h-5" />
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Corner Interactive Page-Curl Hint */}
+              {currentPageIndex < totalPages - 1 && (
+                <button
+                  onClick={handleNextPage}
+                  className="absolute bottom-3 right-3 z-20 bg-gradient-to-r from-[#cf7b3e]/90 to-[#b8612b]/90 hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-xl flex items-center gap-1 border border-white/20 backdrop-blur-sm transition-transform active:scale-95"
+                >
+                  <span>{currentPageNumber === 1 ? 'Open Book (Flip to Page 2)' : 'Flip Page'}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : currentPage ? (
+            /* Fallback Structured Card View if no PDF URL or cover image */
+            <div className="h-full p-4 overflow-y-auto flex flex-col justify-between">
+              {currentPage.isChecklist ? (
                 <div className="h-full flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between border-b border-[#2b251f] pb-2 mb-3">
@@ -375,7 +674,6 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       </div>
                       <CheckSquare className="w-5 h-5 text-[#dea374]" />
                     </div>
-
                     <div className="space-y-3 overflow-y-auto max-h-[380px] pr-1">
                       {currentPage.groceryChecklist?.map((group, idx) => (
                         <div key={idx} className="bg-[#1f1b17] p-2.5 rounded-xl border border-[#322c25]">
@@ -394,36 +692,17 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       ))}
                     </div>
                   </div>
-
-                  {currentPage.chefTip && (
-                    <div className="mt-2 p-2 bg-[#26201a] rounded-lg border-l-2 border-[#cf7b3e] text-[10px] text-[#c9c1b5]">
-                      {currentPage.chefTip}
-                    </div>
-                  )}
                 </div>
               ) : (
-                /* Standard Editorial Phone Recipe Card */
-                <div className="h-full flex flex-col justify-between print:text-black">
+                <div className="h-full flex flex-col justify-between">
                   <div>
-                    {/* Header info */}
-                    <div className="flex items-start justify-between border-b border-[#2b251f] pb-2 mb-2">
-                      <div>
-                        <span className="text-[9px] uppercase font-bold tracking-widest text-[#dea374]">
-                          {currentPage.category || 'RECIPE CARD'} • #{currentPage.pageNumber}
-                        </span>
-                        <h2 className="font-serif text-base sm:text-lg font-bold text-white leading-tight">
-                          {currentPage.title}
-                        </h2>
-                        {currentPage.subtitle && (
-                          <p className="text-[11px] text-[#a8a196] italic mt-0.5">
-                            {currentPage.subtitle}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Quick Stats: Time, Servings, Heat */}
-                    <div className="grid grid-cols-3 gap-1 bg-[#1e1a16] p-1.5 rounded-lg border border-[#2d261f] text-[10px] mb-2 text-[#ccc4b8]">
+                    <span className="text-[9px] uppercase font-bold tracking-widest text-[#dea374]">
+                      {currentPage.category || 'RECIPE CARD'} • #{currentPage.pageNumber}
+                    </span>
+                    <h2 className="font-serif text-base sm:text-lg font-bold text-white leading-tight">
+                      {currentPage.title}
+                    </h2>
+                    <div className="grid grid-cols-3 gap-1 bg-[#1e1a16] p-1.5 rounded-lg border border-[#2d261f] text-[10px] my-2 text-[#ccc4b8]">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3 text-[#dea374]" />
                         <span>{currentPage.cookTime || '20m'}</span>
@@ -437,134 +716,82 @@ export const BookReader: React.FC<BookReaderProps> = ({
                         <span className="truncate">{currentPage.heatLevel || 'Medium'}</span>
                       </div>
                     </div>
-
-                    {/* Recipe Image */}
-                    {currentPage.image && (
-                      <div className="h-28 w-full rounded-xl overflow-hidden border border-[#332b22] mb-2 shadow-md">
-                        <img 
-                          src={currentPage.image} 
-                          alt={currentPage.title} 
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    )}
-
-                    {/* Ingredients & Step Flow */}
-                    <div className="space-y-2 text-xs overflow-y-auto max-h-[180px] pr-1">
-                      {currentPage.ingredients && currentPage.ingredients.length > 0 && (
-                        <div>
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#dea374] mb-1">
-                            Key Ingredients
-                          </h4>
-                          <ul className="space-y-0.5 text-[11px] text-[#dbd4c8]">
-                            {currentPage.ingredients.map((ing, i) => (
-                              <li key={i} className="flex items-start gap-1">
-                                <span className="text-[#cf7b3e]">•</span>
-                                <span>{ing}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {currentPage.instructions && currentPage.instructions.length > 0 && (
-                        <div className="pt-1">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#dea374] mb-1">
-                            Step-by-Step Method
-                          </h4>
-                          <ol className="space-y-1 text-[11px] text-[#dbd4c8]">
-                            {currentPage.instructions.map((step, i) => (
-                              <li key={i} className="flex items-start gap-1.5">
-                                <span className="font-bold text-[#dea374] min-w-[14px]">{i + 1}.</span>
-                                <span className="leading-tight">{step}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-                      )}
-                    </div>
                   </div>
-
-                  {/* Chef Tip & Footer */}
-                  {currentPage.chefTip && (
-                    <div className="mt-2 p-1.5 bg-[#231d17] rounded-lg border-l-2 border-[#dea374] text-[10px] text-[#c7beaf] italic">
-                      <span className="font-bold not-italic text-[#dea374]">Vault Note: </span>
-                      {currentPage.chefTip}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center text-center text-xs text-[#888]">
-              No page data available.
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-xs text-[#a8a196]">
+              <Loader2 className="w-6 h-6 text-[#dea374] animate-spin mb-2" />
+              <span>Loading PDF Page {currentPageNumber}...</span>
             </div>
           )}
         </div>
 
-        {/* Bottom Kindle Navigation Bar */}
-        <div className="h-12 bg-[#121110] border-t border-[#23201c] flex items-center justify-between px-4 text-xs">
+        {/* Bottom 3D Book Flip Bar */}
+        <div className="h-12 bg-[#121110] border-t border-[#23201c] flex items-center justify-between px-4 text-xs z-30">
           <button
             onClick={handlePrevPage}
             disabled={currentPageIndex === 0}
-            className={`flex items-center gap-1 font-semibold ${
-              currentPageIndex === 0 ? 'text-[#444] cursor-not-allowed' : 'text-[#dea374] hover:text-white'
+            className={`flex items-center gap-1 font-semibold px-2.5 py-1 rounded-lg transition-all ${
+              currentPageIndex === 0
+                ? 'text-[#444] cursor-not-allowed'
+                : 'text-[#dea374] hover:text-white hover:bg-[#1f1b17]'
             }`}
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Prev</span>
+            <span>Flip Back</span>
           </button>
 
-          {/* Page Tracker Dots */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-mono text-[#8a8277]">
-              {currentPageIndex + 1} / {totalPages}
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-3.5 h-3.5 text-[#dea374]" />
+            <span className="text-[11px] font-mono text-[#c2bcaf]">
+              Page {currentPageNumber} / {totalPages}
             </span>
           </div>
 
           <button
             onClick={handleNextPage}
             disabled={currentPageIndex === totalPages - 1}
-            className={`flex items-center gap-1 font-semibold ${
-              currentPageIndex === totalPages - 1 ? 'text-[#444] cursor-not-allowed' : 'text-[#dea374] hover:text-white'
+            className={`flex items-center gap-1 font-semibold px-2.5 py-1 rounded-lg transition-all ${
+              currentPageIndex === totalPages - 1
+                ? 'text-[#444] cursor-not-allowed'
+                : 'text-[#dea374] hover:text-white hover:bg-[#1f1b17]'
             }`}
           >
-            <span>Next</span>
+            <span>Flip Next</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Under-Reader Quick Hint */}
-      <div className="mt-3 flex items-center justify-center gap-4 text-[11px] text-[#7d756a]">
-        <span>← Swipe or use arrow keys to flip</span>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[11px] text-[#7d756a]">
+        <span>← Tap page edges, swipe, or use arrow keys for 3D page flip →</span>
         <span>•</span>
-        <span>Target: 360 × 600 phone scale</span>
         {isUnlocked ? (
-          <>
-            <span>•</span>
-            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-              <Unlock className="w-3 h-3" /> Fully Unlocked
-            </span>
-          </>
+          <span className="text-emerald-400 font-semibold flex items-center gap-1">
+            <Unlock className="w-3 h-3" /> All {totalPages} PDF Pages Unlocked
+          </span>
         ) : (
-          <>
-            <span>•</span>
-            <span className="text-amber-400 font-semibold">5 Pages Free</span>
-          </>
+          <span className="text-amber-400 font-semibold">
+            First {previewLimit} Pages Free Preview
+          </span>
         )}
       </div>
 
-      {/* Table of Contents Drawer Modal */}
+      {/* Table of Contents / Page Jump Drawer Modal */}
       {showToc && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
           <div className="bg-[#1a1715] border border-[#362f28] rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="p-4 border-b border-[#2b251f] flex items-center justify-between">
               <div>
-                <h3 className="font-serif font-bold text-white text-base">Table of Contents</h3>
+                <h3 className="font-serif font-bold text-white text-base">
+                  Jump to PDF Page ({totalPages} Pages)
+                </h3>
                 <p className="text-xs text-[#a8a196]">{book.title}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowToc(false)}
                 className="p-1 rounded-lg text-[#888] hover:text-white"
               >
@@ -572,40 +799,32 @@ export const BookReader: React.FC<BookReaderProps> = ({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-1">
-              {pages.map((p, idx) => {
+            <div className="flex-1 overflow-y-auto p-3 grid grid-cols-4 gap-2">
+              {Array.from({ length: totalPages }, (_, idx) => {
                 const isLocked = !isUnlocked && idx >= previewLimit;
                 return (
                   <button
-                    key={p.id || idx}
+                    key={idx}
                     onClick={() => {
                       setCurrentPageIndex(idx);
                       setShowToc(false);
                     }}
-                    className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-all ${
-                      currentPageIndex === idx 
-                        ? 'bg-[#cf7b3e]/20 border border-[#cf7b3e] text-white' 
-                        : 'hover:bg-[#25201b] text-[#c9c2b6]'
+                    className={`p-2.5 rounded-xl flex flex-col items-center justify-center border text-xs font-bold transition-all ${
+                      currentPageIndex === idx
+                        ? 'bg-[#cf7b3e] border-[#dea374] text-white'
+                        : isLocked
+                        ? 'bg-[#141210] border-[#26201a] text-[#777] hover:border-amber-500/40'
+                        : 'bg-[#221d18] border-[#332b22] text-[#dea374] hover:bg-[#2d261f]'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <span className="text-[11px] font-mono text-[#8a8277] w-5">
-                        {idx + 1}.
+                    <span>P.{idx + 1}</span>
+                    {isLocked ? (
+                      <Lock className="w-3 h-3 text-amber-500 mt-0.5" />
+                    ) : (
+                      <span className="text-[9px] text-emerald-400 font-normal mt-0.5">
+                        {idx === 0 ? 'Cover' : idx < previewLimit ? 'Free' : 'Open'}
                       </span>
-                      <span className="text-xs truncate font-medium">
-                        {p.title}
-                      </span>
-                    </div>
-
-                    <div>
-                      {isLocked ? (
-                        <Lock className="w-3.5 h-3.5 text-amber-500" />
-                      ) : (
-                        <span className="text-[10px] text-[#777] uppercase font-mono">
-                          {p.category || 'Page'}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </button>
                 );
               })}

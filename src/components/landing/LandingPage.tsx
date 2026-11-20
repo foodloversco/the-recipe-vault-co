@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Book, Bundle } from '../../types';
 import { APP_SUBHEADING } from '../../data/initialBooks';
 import { promoStore } from '../../services/promoStore';
+import { bookStore } from '../../services/bookStore';
 import { 
   BookOpen, 
   Sparkles, 
@@ -19,7 +20,8 @@ import {
   Eye, 
   DollarSign, 
   Layers,
-  Tag
+  Tag,
+  Heart
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -28,6 +30,7 @@ interface LandingPageProps {
   unlockedBookIds: Set<string>;
   onOpenReader: (slug: string) => void;
   onOpenCheckout: (item: { id: string; type: 'book' | 'bundle'; title: string; price: number; originalPrice?: number }) => void;
+  onRefresh?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -36,11 +39,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   unlockedBookIds,
   onOpenReader,
   onOpenCheckout,
+  onRefresh,
 }) => {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [, setFavTick] = useState(0);
 
   const featuredBook = books.find((b) => b.isFeatured) || books[0];
   const primaryBundle = bundles[0];
+
+  const handleToggleFavoriteBook = (bookId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    bookStore.toggleFavoriteBook(bookId);
+    setFavTick((t) => t + 1);
+    if (onRefresh) onRefresh();
+  };
 
   const handleCopyLink = (slug: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -153,20 +165,48 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* Right: Details, Pricing, PayPal & Free Preview */}
             <div className="w-full md:w-7/12 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold tracking-wider text-[#dea374] bg-[#29221b] px-3 py-1 rounded-full border border-[#cf7b3e]/30">
-                  FLAGSHIP FIRST EDITION
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] uppercase font-bold tracking-wider text-[#dea374] bg-[#29221b] px-3 py-1 rounded-full border border-[#cf7b3e]/30">
+                    FLAGSHIP FIRST EDITION
+                  </span>
+                  {featuredBook.soldCount !== undefined && featuredBook.soldCount > 0 && (
+                    <span className="text-[11px] font-bold text-amber-300 bg-amber-950/70 px-3 py-1 rounded-full border border-amber-500/40 flex items-center gap-1">
+                      <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                      <span>{featuredBook.soldCount} Copies Sold</span>
+                    </span>
+                  )}
+                </div>
                 
-                {/* Unique URL Link Share Button */}
-                <button
-                  onClick={(e) => handleCopyLink(featuredBook.slug, e)}
-                  className="text-xs text-[#a1998f] hover:text-white flex items-center gap-1.5 bg-[#171513] px-3 py-1 rounded-full border border-[#2b251f]"
-                  title="Copy Unique Book Link"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-[#dea374]" />
-                  <span>{copiedSlug === featuredBook.slug ? 'Link Copied!' : 'Copy Unique Link'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Like / Save to Favorites & Wishlist Button */}
+                  <button
+                    onClick={(e) => handleToggleFavoriteBook(featuredBook.id, e)}
+                    className={`text-xs flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${
+                      bookStore.isBookFavorited(featuredBook.id)
+                        ? 'bg-rose-600 text-white border-rose-400 shadow-md'
+                        : 'bg-[#171513] text-[#f3d1d8] hover:text-white border-rose-500/30 hover:bg-rose-950/50'
+                    }`}
+                    title="Add to Favorites & Wishlist"
+                  >
+                    <Heart
+                      className={`w-3.5 h-3.5 ${
+                        bookStore.isBookFavorited(featuredBook.id) ? 'fill-white text-white' : 'text-rose-400'
+                      }`}
+                    />
+                    <span>{bookStore.isBookFavorited(featuredBook.id) ? 'In Favorites / Wishlist' : 'Like / Wishlist'}</span>
+                  </button>
+
+                  {/* Unique URL Link Share Button */}
+                  <button
+                    onClick={(e) => handleCopyLink(featuredBook.slug, e)}
+                    className="text-xs text-[#a1998f] hover:text-white flex items-center gap-1.5 bg-[#171513] px-3 py-1 rounded-full border border-[#2b251f]"
+                    title="Copy Unique Book Link"
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-[#dea374]" />
+                    <span>{copiedSlug === featuredBook.slug ? 'Link Copied!' : 'Copy Unique Link'}</span>
+                  </button>
+                </div>
               </div>
 
               <h2 className="font-serif text-2xl sm:text-4xl font-bold text-white leading-tight">
@@ -336,20 +376,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       alt={book.title} 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                     />
-                    <div className="absolute top-3 left-3 bg-[#111]/80 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10 text-[10px] font-bold text-white">
-                      {book.category}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                      <div className="bg-[#111]/85 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10 text-[10px] font-bold text-white w-fit">
+                        {book.category}
+                      </div>
+                      {book.soldCount !== undefined && book.soldCount > 0 && (
+                        <div className="bg-amber-950/90 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-amber-500/40 text-[10px] font-bold text-amber-300 flex items-center gap-1 w-fit">
+                          <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          <span>{book.soldCount} Sold</span>
+                        </div>
+                      )}
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyLink(book.slug, e);
-                      }}
-                      title="Copy Unique Link"
-                      className="absolute top-3 right-3 bg-[#111]/80 hover:bg-[#111] p-1.5 rounded-full text-[#c2bcaf] border border-white/10"
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                      <button
+                        onClick={(e) => handleToggleFavoriteBook(book.id, e)}
+                        title={bookStore.isBookFavorited(book.id) ? 'Saved in Favorites & Wishlist' : 'Add to Favorites & Wishlist'}
+                        className={`p-2 rounded-full border transition-all shadow-lg ${
+                          bookStore.isBookFavorited(book.id)
+                            ? 'bg-rose-600 text-white border-rose-400'
+                            : 'bg-[#111]/85 hover:bg-rose-950 text-rose-400 border-white/10'
+                        }`}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${bookStore.isBookFavorited(book.id) ? 'fill-white' : ''}`} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyLink(book.slug, e);
+                        }}
+                        title="Copy Unique Link"
+                        className="bg-[#111]/85 hover:bg-[#111] p-2 rounded-full text-[#c2bcaf] border border-white/10 shadow-lg"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
 
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-xs font-bold text-[#dea374]">
                       <Eye className="w-3.5 h-3.5" />

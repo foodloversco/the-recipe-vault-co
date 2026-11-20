@@ -33,6 +33,7 @@ export interface Book {
   coverImage: string;
   price: number; // in USD
   originalPrice?: number;
+  soldCount?: number; // Admin configurable base count + auto-incremented on each sale
   promoCode?: string;
   promoExpiresAt?: string | null; // ISO timestamp or null for lifetime
   promoDurationDays?: number | 'lifetime';
@@ -114,4 +115,18 @@ export interface PromoCode {
   isActive: boolean;
   timesUsed: number;
 }
+
+export interface FavoriteRecipeItem {
+  id: string; // `${bookId}_${pageNumber}`
+  bookId: string;
+  bookSlug: string;
+  bookTitle: string;
+  pageNumber: number;
+  recipeTitle: string;
+  recipeSubtitle?: string;
+  category?: string;
+  image?: string;
+  addedAt: string;
+}
+
 

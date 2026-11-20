@@ -1,4 +1,4 @@
-const CACHE_NAME = 'recipe-vault-hybrid-v1';
+const CACHE_NAME = 'recipe-vault-hybrid-v3';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
