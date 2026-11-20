@@ -98,69 +98,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="text-[#f5f2eb]">
-      {/* 1. COMPACT MOBILE-FIRST HERO SECTION */}
-      <section className="relative pt-4 sm:pt-8 pb-6 sm:pb-10 px-3 sm:px-6 overflow-hidden border-b border-[#26211c]">
-        {/* Subtle background glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#cf7b3e]/15 blur-[120px] rounded-full pointer-events-none"></div>
-
-        <div className="max-w-3xl mx-auto text-center relative z-10">
-          {/* Tagline Pill */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#201b17] border border-[#3d3329] shadow-sm mb-3 sm:mb-4">
-            <Smartphone className="w-3.5 h-3.5 text-[#cf7b3e]" />
-            <span className="text-[10px] sm:text-xs uppercase font-bold tracking-widest text-[#dea374]">
-              PHONE-READY DIGITAL RECIPE CARDS
-            </span>
-          </div>
-
-          <h1 className="font-serif text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-2 sm:mb-3 leading-tight">
-            The Recipe Vault Co.
-          </h1>
-
-          {/* Punchy Mobile Subtitle */}
-          <p className="text-xs sm:text-sm md:text-base text-[#cfc7bc] leading-relaxed max-w-2xl mx-auto mb-3">
-            Collectible, 9:16 phone-ready recipe card series with 1-tap grocery checklists, screen wake lock &amp; fireside timers. Flip like a book, cook offline with zero clutter.
-          </p>
-
-          {/* Expandable Full Mission Subheading for curious readers */}
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => setShowFullMission(!showFullMission)}
-              className="text-[11px] text-[#dea374] hover:text-[#eed2b8] inline-flex items-center gap-1 font-medium transition-colors"
-            >
-              <span>{showFullMission ? 'Show less' : 'About The Recipe Vault Co.'}</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFullMission ? 'rotate-180' : ''}`} />
-            </button>
-            {showFullMission && (
-              <p className="mt-2 text-xs text-[#a89f92] leading-relaxed bg-[#191613] p-3 rounded-xl border border-[#2b251f] animate-in fade-in">
-                {APP_SUBHEADING}
-              </p>
-            )}
-          </div>
-
-          {/* Mobile Trust Quick Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-2xl mx-auto text-[11px] text-[#a39a8e]">
-            <div className="bg-[#171412] px-2.5 py-1.5 rounded-lg border border-[#28221b] flex items-center justify-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5 text-[#cf7b3e] flex-shrink-0" />
-              <span>9:16 Phone Flip</span>
-            </div>
-            <div className="bg-[#171412] px-2.5 py-1.5 rounded-lg border border-[#28221b] flex items-center justify-center gap-1.5">
-              <ShoppingBag className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              <span>Aisle Checklists</span>
-            </div>
-            <div className="bg-[#171412] px-2.5 py-1.5 rounded-lg border border-[#28221b] flex items-center justify-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span>Kitchen Timer</span>
-            </div>
-            <div className="bg-[#171412] px-2.5 py-1.5 rounded-lg border border-[#28221b] flex items-center justify-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              <span>{currency === 'ZAR' ? 'R20 Capitec / Card' : '$1.00 USD PayPal'}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. 3D COVERFLOW CAROUSELS (MATCHING USER'S SCREENSHOT LAYOUT) */}
+      {/* 3D COVERFLOW CAROUSELS (DIRECT TO RECIPE BOOKS) */}
 
       {/* Category 1: Open-Fire & Grilling Series */}
       <CoverCarouselSection

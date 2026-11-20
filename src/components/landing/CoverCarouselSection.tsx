@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Book } from '../../types';
-import { ChevronLeft, ChevronRight, Eye, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, BookOpen, Sparkles, Layers } from 'lucide-react';
 
 interface CoverCarouselSectionProps {
   title: string;
@@ -46,28 +46,55 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
     touchStartX.current = null;
   };
 
-  const activeBook = books[activeIndex] || books[0];
-
   return (
-    <section className="py-12 px-4 sm:px-6 max-w-6xl mx-auto overflow-hidden">
+    <section className="pt-4 sm:pt-8 pb-12 px-3 sm:px-6 max-w-6xl mx-auto overflow-hidden">
       {/* Category Header */}
-      <div className="text-center mb-8">
-        <span className="text-[11px] uppercase font-bold tracking-widest text-[#dea374] bg-[#241c16] px-3.5 py-1 rounded-full border border-[#cf7b3e]/30 inline-block mb-2">
+      <div className="text-center mb-5 sm:mb-8">
+        <span className="text-[10px] sm:text-[11px] uppercase font-bold tracking-widest text-[#dea374] bg-[#241c16] px-3.5 py-1 rounded-full border border-[#cf7b3e]/30 inline-block mb-1.5 sm:mb-2">
           {categoryTag}
         </span>
         <h2 className="font-serif text-2xl sm:text-4xl font-extrabold text-white tracking-wide uppercase">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-xs sm:text-sm text-[#a8a196] max-w-xl mx-auto mt-2 leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#a8a196] max-w-xl mx-auto mt-1 sm:mt-2 leading-relaxed">
             {subtitle}
           </p>
+        )}
+
+        {/* Quick Volume Switcher Tabs (when there are multiple books) */}
+        {books.length > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+            {books.map((book, bIdx) => {
+              const isSelected = bIdx === activeIndex;
+              const shortTitle = book.title.includes('Series 2')
+                ? 'Series 2 (New)'
+                : book.title.includes('Series 1')
+                ? 'Series 1'
+                : `Vol 0${bIdx + 1}`;
+
+              return (
+                <button
+                  key={book.id}
+                  onClick={() => setActiveIndex(bIdx)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 border border-[#dea374]'
+                      : 'bg-[#1b1713] text-[#a89e91] hover:text-white border border-[#332b21] hover:bg-[#26201a]'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{shortTitle}</span>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
       {/* 3D Carousel / Coverflow Stage */}
       <div
-        className="relative flex items-center justify-center min-h-[520px] sm:min-h-[580px] select-none"
+        className="relative flex items-center justify-center min-h-[500px] sm:min-h-[560px] select-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -76,36 +103,36 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
           <button
             onClick={handlePrev}
             aria-label="Previous Book"
-            className="absolute left-2 sm:left-8 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/90 border border-[#3e3428] text-white flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+            className="absolute left-1 sm:left-6 z-30 w-11 h-11 rounded-full bg-black/80 hover:bg-black border border-[#cf7b3e]/40 text-white flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
           >
             <ChevronLeft className="w-6 h-6 text-[#dea374]" />
           </button>
         )}
 
         {/* Cards Stack */}
-        <div className="relative w-full max-w-[340px] sm:max-w-[370px] h-[480px] sm:h-[530px] flex items-center justify-center">
+        <div className="relative w-full max-w-[320px] sm:max-w-[360px] h-[460px] sm:h-[510px] flex items-center justify-center">
           {books.map((book, idx) => {
             const offset = idx - activeIndex;
             const isCenter = offset === 0;
-            const isLeft = offset === -1 || (activeIndex === 0 && idx === books.length - 1 && books.length > 2);
-            const isRight = offset === 1 || (activeIndex === books.length - 1 && idx === 0 && books.length > 2);
+            const isLeft = offset === -1 || (activeIndex === 0 && idx === books.length - 1);
+            const isRight = offset === 1 || (activeIndex === books.length - 1 && idx === 0);
 
             if (!isCenter && !isLeft && !isRight) return null;
 
             let transformClass = '';
             let zIndexClass = 'z-10';
-            let opacityClass = 'opacity-35 scale-85';
+            let opacityClass = 'opacity-40 scale-85';
 
             if (isCenter) {
               transformClass = 'translate-x-0 scale-100';
               zIndexClass = 'z-20';
-              opacityClass = 'opacity-100 shadow-[0_20px_50px_rgba(207,123,62,0.22)]';
+              opacityClass = 'opacity-100 shadow-[0_20px_50px_rgba(207,123,62,0.25)]';
             } else if (isLeft) {
-              transformClass = '-translate-x-[55%] sm:-translate-x-[65%] scale-90 -rotate-3';
-              opacityClass = 'opacity-50 hover:opacity-75 cursor-pointer';
+              transformClass = '-translate-x-[36%] sm:-translate-x-[55%] scale-90 -rotate-3';
+              opacityClass = 'opacity-60 hover:opacity-85 cursor-pointer';
             } else if (isRight) {
-              transformClass = 'translate-x-[55%] sm:translate-x-[65%] scale-90 rotate-3';
-              opacityClass = 'opacity-50 hover:opacity-75 cursor-pointer';
+              transformClass = 'translate-x-[36%] sm:translate-x-[55%] scale-90 rotate-3';
+              opacityClass = 'opacity-60 hover:opacity-85 cursor-pointer';
             }
 
             return (
@@ -118,12 +145,12 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
                     setActiveIndex(idx);
                   }
                 }}
-                className={`absolute inset-0 transition-all duration-500 ease-out flex flex-col rounded-[28px] overflow-hidden bg-[#161310] border-2 ${
-                  isCenter ? 'border-[#cf7b3e]/80' : 'border-[#332b22]'
+                className={`absolute inset-0 transition-all duration-500 ease-out flex flex-col rounded-[26px] overflow-hidden bg-[#161310] border-2 ${
+                  isCenter ? 'border-[#cf7b3e]' : 'border-[#332b22]'
                 } ${transformClass} ${zIndexClass} ${opacityClass}`}
               >
                 {/* Card Top Bezel Bar (Matching Screenshot Pill Layout) */}
-                <div className="px-4 py-2.5 bg-[#1a1613] border-b border-[#29221b] flex items-center justify-between text-[10px] font-bold">
+                <div className="px-3.5 py-2 bg-[#1a1613] border-b border-[#29221b] flex items-center justify-between text-[10px] font-bold">
                   <span className="uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#261f18] text-[#dea374] border border-[#cf7b3e]/30 truncate max-w-[170px]">
                     {book.category}
                   </span>
@@ -140,17 +167,17 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
                     className="w-full h-full object-contain object-top select-none transition-transform duration-500 group-hover:scale-105"
                   />
 
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-xs font-bold text-amber-300 bg-black/70 px-3.5 py-1.5 rounded-full border border-amber-400/40 flex items-center gap-1.5 shadow-lg">
-                      <Eye className="w-4 h-4 text-amber-400" />
+                  {/* Click to Inspect Overlay Tag (Matching Reference Screenshot) */}
+                  <div className="absolute inset-x-0 bottom-4 flex justify-center px-3 pointer-events-none">
+                    <span className="text-xs font-bold text-amber-300 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-amber-400/40 flex items-center gap-1.5 shadow-xl">
+                      <Eye className="w-3.5 h-3.5 text-amber-400" />
                       <span>Click to Inspect Book Details</span>
                     </span>
                   </div>
                 </div>
 
                 {/* Card Bottom Panel (Matching Screenshot Title & Inspect Card Button) */}
-                <div className="p-3.5 sm:p-4 bg-[#14110e] border-t border-[#29221b]">
+                <div className="p-3 bg-[#14110e] border-t border-[#29221b]">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 pr-1">
                       <h3 className="font-serif text-xs sm:text-sm font-extrabold text-white uppercase tracking-wider truncate">
@@ -184,7 +211,7 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
           <button
             onClick={handleNext}
             aria-label="Next Book"
-            className="absolute right-2 sm:right-8 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/90 border border-[#3e3428] text-white flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+            className="absolute right-1 sm:right-6 z-30 w-11 h-11 rounded-full bg-black/80 hover:bg-black border border-[#cf7b3e]/40 text-white flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
           >
             <ChevronRight className="w-6 h-6 text-[#dea374]" />
           </button>
@@ -192,7 +219,7 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
       </div>
 
       {/* Bottom Pagination & Glowing Dots (Matching Screenshot: Card X of Y) */}
-      <div className="flex flex-col items-center justify-center mt-6 space-y-2">
+      <div className="flex flex-col items-center justify-center mt-5 space-y-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-[#a8a196]">
             Card <strong className="text-white">{activeIndex + 1}</strong> of <strong className="text-white">{books.length}</strong>
@@ -215,6 +242,85 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
           ))}
         </div>
       </div>
+
+      {/* VISIBLE ALL VOLUMES SHELF (Shows both books clearly so none is hidden) */}
+      {books.length > 1 && (
+        <div className="mt-10 pt-6 border-t border-[#29221b]">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="font-serif text-sm sm:text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#cf7b3e]" />
+              <span>All Volumes in this Series ({books.length})</span>
+            </h3>
+            <span className="text-[11px] text-[#8e8578]">Tap to inspect or flip</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+            {books.map((b, bIdx) => {
+              const isCurrent = bIdx === activeIndex;
+              return (
+                <div
+                  key={b.id}
+                  onClick={() => {
+                    setActiveIndex(bIdx);
+                    onInspectBook(b);
+                  }}
+                  className={`bg-[#181411] border rounded-2xl p-3 flex flex-col justify-between cursor-pointer group transition-all ${
+                    isCurrent
+                      ? 'border-[#cf7b3e] shadow-lg shadow-[#cf7b3e]/20 ring-1 ring-[#cf7b3e]/50'
+                      : 'border-[#2d251d] hover:border-[#cf7b3e]/60 hover:bg-[#201a15]'
+                  }`}
+                >
+                  <div className="aspect-[9/16] rounded-xl overflow-hidden bg-[#0c0a09] border border-[#26201a] mb-2.5 relative">
+                    <img
+                      src={b.coverImage}
+                      alt={b.title}
+                      className="w-full h-full object-contain object-top group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-1.5 left-1.5 bg-black/80 px-2 py-0.5 rounded-full text-[9px] font-bold text-[#dea374] border border-[#cf7b3e]/30">
+                      {b.title.includes('Series 2') ? 'Series 2' : 'Series 1'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-serif text-xs font-bold text-white line-clamp-1 leading-snug">
+                      {b.title}
+                    </h4>
+                    <p className="text-[10px] text-[#9c9388] mt-0.5">
+                      30 Recipes • 5 Free Pages
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 mt-2.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenReader(b.slug);
+                      }}
+                      className="flex-1 py-1.5 px-2 rounded-lg bg-[#241d17] hover:bg-[#32271e] text-[10px] font-bold text-amber-300 border border-amber-600/30 flex items-center justify-center gap-1"
+                    >
+                      <BookOpen className="w-3 h-3" />
+                      <span>Flip</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onInspectBook(b);
+                      }}
+                      className="flex-1 py-1.5 px-2 rounded-lg bg-[#cf7b3e] hover:bg-[#b8612b] text-[10px] font-bold text-white flex items-center justify-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Inspect</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 };
