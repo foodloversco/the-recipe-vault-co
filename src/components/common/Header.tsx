@@ -101,14 +101,16 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Grocery Shopping Lists Button */}
           <button
             onClick={() => onNavigate('groceries')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-all ${
+            title="In-Store Grocery Shopping Checklists"
+            aria-label="In-Store Grocery Shopping Checklists"
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-all ${
               currentView === 'groceries'
                 ? 'bg-emerald-700 text-white border border-emerald-400/50 shadow-lg'
                 : 'bg-[#1d1a17] text-emerald-400/90 border border-emerald-500/30 hover:bg-emerald-950/40'
             }`}
           >
-            <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Groceries</span>
+            <ShoppingBag className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+            <span>Groceries</span>
           </button>
 
           <button

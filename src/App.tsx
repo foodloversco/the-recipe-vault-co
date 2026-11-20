@@ -137,6 +137,12 @@ export const App: React.FC = () => {
       url.searchParams.set('view', 'favorites');
       url.searchParams.delete('book');
       window.history.pushState({}, '', url.toString());
+    } else if (view === 'groceries') {
+      setCurrentView('groceries');
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'groceries');
+      url.searchParams.delete('book');
+      window.history.pushState({}, '', url.toString());
     } else if (view === 'reader' && slug) {
       handleOpenReader(slug);
     } else {
