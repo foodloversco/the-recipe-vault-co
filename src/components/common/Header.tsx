@@ -102,15 +102,6 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-[9px] sm:text-[11px] leading-none">R20</span>
             </button>
           </div>
-                currency === 'ZAR'
-                  ? 'bg-emerald-700 text-white shadow-md'
-                  : 'text-[#9c9388] hover:text-white'
-              }`}
-            >
-              <span className="text-xs sm:text-sm leading-none">🇿🇦</span>
-              <span className="text-[10px] sm:text-[11px] leading-none">R20</span>
-            </button>
-          </div>
 
           {/* Desktop Navigation Links (Hidden on small mobile screens to keep header ultra-clean) */}
           <nav className="hidden md:flex items-center gap-2">
