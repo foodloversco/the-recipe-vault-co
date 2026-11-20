@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   paypalClientId: 'test',
   paypalMode: 'sandbox',
   storageProvider: 'cloudflare-r2', // Cloudflare R2: 10GB free + $0 egress bandwidth
-  r2AccountId: '',
+  r2AccountId: '96919865db5f5c66d503f8cbe3abc1b5',
   r2AccessKeyId: '',
   r2SecretAccessKey: '',
   r2BucketName: 'recipe-vault-books',
