@@ -3,6 +3,7 @@ import { Book, Bundle } from '../../types';
 import { APP_SUBHEADING } from '../../data/initialBooks';
 import { promoStore } from '../../services/promoStore';
 import { bookStore } from '../../services/bookStore';
+import { reviewStore } from '../../services/reviewStore';
 import { BookReviewsModal } from '../reviews/BookReviewsModal';
 import { 
   BookOpen, 
@@ -210,20 +211,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {featuredBook.title}
                 </h2>
 
-                {/* 4.7 Star Rating Badge (Clickable to open reviews) */}
-                <button
-                  type="button"
-                  onClick={() => setReviewModalBook(featuredBook)}
-                  className="mt-2 inline-flex items-center gap-2 bg-[#201b17] hover:bg-[#2b241e] border border-[#3b3228] px-3 py-1 rounded-full text-xs transition-all group"
-                >
-                  <div className="flex items-center gap-0.5 text-amber-400">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Star key={i} className={`w-3.5 h-3.5 ${i < 4 ? 'fill-amber-400' : 'fill-amber-400/50'}`} />
-                    ))}
-                  </div>
-                  <span className="font-bold text-white">4.7 / 5.0</span>
-                  <span className="text-[#a8a196] group-hover:text-[#dea374]">• 184 Verified Reviews →</span>
-                </button>
+                {/* Dynamic Star Rating Badge (Clickable to open reviews) */}
+                {(() => {
+                  const featuredStats = reviewStore.getRatingStats(featuredBook.slug || featuredBook.id);
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setReviewModalBook(featuredBook)}
+                      className="mt-2 inline-flex items-center gap-2 bg-[#201b17] hover:bg-[#2b241e] border border-[#3b3228] px-3 py-1 rounded-full text-xs transition-all group"
+                    >
+                      <div className="flex items-center gap-0.5 text-amber-400">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3.5 h-3.5 ${
+                              featuredStats.count > 0
+                                ? i < Math.round(featuredStats.average)
+                                  ? 'fill-amber-400'
+                                  : 'text-[#443b32]'
+                                : 'fill-amber-400'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="font-bold text-white">
+                        {featuredStats.count > 0 ? `${featuredStats.average.toFixed(1)} / 5.0` : '★ New Launch'}
+                      </span>
+                      <span className="text-[#a8a196] group-hover:text-[#dea374]">
+                        {featuredStats.count > 0
+                          ? `• ${featuredStats.count} Verified Review${featuredStats.count === 1 ? '' : 's'} →`
+                          : '• Be First to Review →'}
+                      </span>
+                    </button>
+                  );
+                })()}
               </div>
 
               {/* Tagline Hook */}
@@ -345,16 +366,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-[#857d72]">One-time digital charge • Instant unlock</span>
+                  <div className="text-[10px] text-[#857d72] flex items-center gap-1.5">
+                    <span>One-time charge • $1.00 USD or R20 ZAR</span>
+                  </div>
                 </div>
 
                 <div className="flex flex-col sm:items-end gap-1.5">
-                  {featuredBook.soldCount !== undefined && featuredBook.soldCount > 0 && (
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/85 px-2.5 py-0.5 rounded-full border border-amber-500/40 w-fit">
-                      <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                      <span>{featuredBook.soldCount} Copies Sold</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/85 px-2.5 py-0.5 rounded-full border border-amber-500/40 w-fit">
+                    <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span>
+                      {featuredBook.soldCount !== undefined && featuredBook.soldCount > 0
+                        ? `${featuredBook.soldCount} Copies Sold`
+                        : '🔥 1st Edition • Just Launched'}
+                    </span>
+                  </div>
 
                   <div className="flex flex-col sm:flex-row gap-2.5">
                     <button
@@ -370,7 +395,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-[#cf7b3e]/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                       <CreditCard className="w-4 h-4" />
-                      <span>Pay with PayPal (${featuredBook.price.toFixed(2)})</span>
+                      <span>Buy ($1 USD / R20 ZAR)</span>
                     </button>
                   </div>
                 </div>
@@ -522,16 +547,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
                     <div className="flex items-center justify-between text-[9px] sm:text-[11px] text-[#dea374] mb-1 font-mono">
                       <span className="truncate">30 Phone Recipes</span>
-                      <button
-                        type="button"
-                        onClick={() => setReviewModalBook(book)}
-                        className="flex items-center gap-0.5 sm:gap-1 text-amber-400 hover:text-amber-300 flex-shrink-0"
-                        title="Click to view 4.7-star rating & reviews"
-                      >
-                        <Star className="w-3 h-3 fill-amber-400" />
-                        <span className="font-bold text-white text-[10px] sm:text-[11px]">4.7</span>
-                        <span className="text-[9px] sm:text-[10px] text-[#8e8578] font-sans">(184)</span>
-                      </button>
+                      {(() => {
+                        const bookStats = reviewStore.getRatingStats(book.slug || book.id);
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setReviewModalBook(book)}
+                            className="flex items-center gap-0.5 sm:gap-1 text-amber-400 hover:text-amber-300 flex-shrink-0"
+                            title="Click to view verified rating & reviews"
+                          >
+                            <Star className="w-3 h-3 fill-amber-400" />
+                            {bookStats.count > 0 ? (
+                              <>
+                                <span className="font-bold text-white text-[10px] sm:text-[11px]">
+                                  {bookStats.average.toFixed(1)}
+                                </span>
+                                <span className="text-[9px] sm:text-[10px] text-[#8e8578] font-sans">
+                                  ({bookStats.count})
+                                </span>
+                              </>
+                            ) : (
+                              <span className="font-bold text-amber-300 text-[10px] sm:text-[11px]">
+                                New
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })()}
                     </div>
 
                     <h3 className="font-serif font-bold text-xs sm:text-base text-white leading-snug mb-1 line-clamp-2">
@@ -561,6 +603,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         </span>
                       )}
                       <span className="text-[9px] sm:text-[10px] text-[#dea374] font-semibold">USD</span>
+                      <span className="text-[9px] sm:text-[10px] text-[#8e8578] font-medium">• R{book.priceZAR ?? 20}</span>
                       {book.originalPrice && (
                         <span className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30">
                           {book.promoExpiresAt !== undefined ? promoStore.getDaysRemaining(book.promoExpiresAt) : 'SALE'}
@@ -582,7 +625,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <div className="flex justify-end">
                       <span className="text-[9px] sm:text-[10px] font-bold text-amber-300 bg-amber-950/85 px-2 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 shadow-sm">
                         <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400 fill-amber-400 flex-shrink-0" />
-                        <span>{book.soldCount ?? 385} Sold</span>
+                        <span>
+                          {book.soldCount !== undefined && book.soldCount > 0
+                            ? `${book.soldCount} Sold`
+                            : '1st Edition'}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -601,7 +648,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       className="py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-[10px] sm:text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1 truncate"
                     >
                       <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                      <span className="truncate">Buy ($)</span>
+                      <span className="truncate">Buy ($1 / R20)</span>
                     </button>
                   </div>
                 </div>

@@ -42,13 +42,15 @@ class BookStore {
             if (b.slug === 'south-africa-braai-heritage') {
               return {
                 ...b,
+                title: 'South African Braai & Heritage Series 1',
+                priceZAR: 20,
                 coverImage:
                   b.coverImage && b.coverImage !== '/assets/images/recipe-card-sample.png'
                     ? b.coverImage
                     : '/assets/images/south-africa-braai-cover.jpg',
                 pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_1.pdf',
                 pdfFileName: 'South_African_Braai_Heritage_Series_1.pdf',
-                soldCount: b.soldCount && b.soldCount !== 48 ? b.soldCount : 385,
+                soldCount: typeof b.soldCount === 'number' && b.soldCount < 40 ? b.soldCount : 0,
                 likesCount: b.likesCount !== undefined ? b.likesCount : 191,
               };
             }
@@ -294,6 +296,8 @@ class BookStore {
   public resetPurchases(): void {
     this.unlockedItems.clear();
     localStorage.removeItem(UNLOCKED_ITEMS_KEY);
+    this.books = this.books.map((b) => ({ ...b, soldCount: 0 }));
+    this.saveBooksToStorage();
     this.notifyListeners();
   }
 

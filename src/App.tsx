@@ -39,8 +39,10 @@ export const App: React.FC = () => {
       allBooks.forEach((b) => {
         localStorage.removeItem(`rv_shared_bonus_${b.id}`);
         localStorage.removeItem(`rv_shared_platform_${b.id}`);
+        localStorage.removeItem(`rv_shared_platforms_${b.id}`);
       });
-      console.log('Purchases and bonus keys reset for test mode.');
+      localStorage.removeItem('the_recipe_vault_reviews_v1');
+      console.log('Purchases, reviews, and bonus keys reset for test mode.');
     }
 
     refreshData();

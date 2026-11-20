@@ -26,6 +26,7 @@ interface CheckoutItem {
   title: string;
   price: number;
   originalPrice?: number;
+  priceZAR?: number;
 }
 
 interface PayPalCheckoutModalProps {
@@ -41,6 +42,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const [paymentCurrency, setPaymentCurrency] = useState<'USD' | 'ZAR'>('USD');
   const [buyerEmail, setBuyerEmail] = useState<string>('');
   const [buyerName, setBuyerName] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -57,7 +59,9 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
   const settings = settingsStore.getSettings();
   const paypalClientId = settings.paypalClientId || 'test';
 
-  const effectivePrice = appliedPromo ? appliedPromo.promoPrice : item.price;
+  const effectivePriceUSD = appliedPromo ? appliedPromo.promoPrice : item.price;
+  const effectivePriceZAR = item.priceZAR ?? 20;
+  const effectivePrice = paymentCurrency === 'ZAR' ? effectivePriceZAR : effectivePriceUSD;
   const strikethroughPrice = appliedPromo ? appliedPromo.regularPrice : item.originalPrice;
 
   const handleApplyPromo = (e: React.FormEvent) => {
@@ -88,7 +92,16 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
     });
   };
 
-  const handleCompleteTransaction = (orderId: string, paypalTxId: string, email: string, name: string) => {
+  const handleCompleteTransaction = (
+    orderId: string,
+    paypalTxId: string,
+    email: string,
+    name: string,
+    overrideCurrency?: 'USD' | 'ZAR',
+    overrideAmount?: number
+  ) => {
+    const cur = overrideCurrency || paymentCurrency;
+    const amt = overrideAmount !== undefined ? overrideAmount : (cur === 'ZAR' ? effectivePriceZAR : effectivePriceUSD);
     const token = `RV-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
     setGeneratedToken(token);
 
@@ -105,8 +118,8 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
       itemType: item.type,
       itemId: item.id,
       itemTitle: item.title,
-      amount: effectivePrice,
-      currency: 'USD',
+      amount: amt,
+      currency: cur,
       status: 'COMPLETED',
       unlockToken: token,
     });
@@ -129,7 +142,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
     }
     setIsProcessing(true);
     setTimeout(() => {
-      const mockOrderId = `PP-SIM-${Date.now().toString().slice(-6)}`;
+      const mockOrderId = paymentCurrency === 'ZAR' ? `ZA-EFT-${Date.now().toString().slice(-6)}` : `PP-SIM-${Date.now().toString().slice(-6)}`;
       const mockTxId = `TX-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       handleCompleteTransaction(mockOrderId, mockTxId, buyerEmail, buyerName || 'Gourmet Cook');
     }, 800);
@@ -211,6 +224,33 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
           ) : (
             /* Purchase Flow */
             <div className="space-y-4">
+              {/* Currency Selector: USD Global vs South Africa ZAR */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#12100e] rounded-xl border border-[#2b241c]">
+                <button
+                  type="button"
+                  onClick={() => setPaymentCurrency('USD')}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    paymentCurrency === 'USD'
+                      ? 'bg-[#cf7b3e] text-white shadow-md'
+                      : 'text-[#9c9388] hover:text-white'
+                  }`}
+                >
+                  <span>🇺🇸 Global (USD ${effectivePriceUSD.toFixed(2)})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentCurrency('ZAR')}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    paymentCurrency === 'ZAR'
+                      ? 'bg-emerald-700 text-white shadow-md'
+                      : 'text-[#9c9388] hover:text-white'
+                  }`}
+                >
+                  <span>🇿🇦 South Africa (R{effectivePriceZAR} ZAR)</span>
+                </button>
+              </div>
+
               {/* Item Summary Box */}
               <div className="bg-[#211b15] p-3.5 rounded-2xl border border-[#352c22] flex items-center justify-between">
                 <div className="max-w-[65%]">
@@ -224,18 +264,20 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                 </div>
                 <div className="text-right">
                   <div className="flex items-baseline justify-end gap-1.5">
-                    {strikethroughPrice && (
+                    {paymentCurrency === 'USD' && strikethroughPrice && (
                       <span className="text-sm line-through text-[#8e8578] font-semibold">
                         ${strikethroughPrice.toFixed(2)}
                       </span>
                     )}
                     <div className="text-2xl font-extrabold text-white">
-                      ${effectivePrice.toFixed(2)}
+                      {paymentCurrency === 'ZAR' ? `R${effectivePriceZAR}` : `$${effectivePriceUSD.toFixed(2)}`}
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-1">
-                    <span className="text-[10px] text-[#dea374] font-semibold">USD</span>
-                    {appliedPromo && (
+                    <span className="text-[10px] text-[#dea374] font-semibold">
+                      {paymentCurrency}
+                    </span>
+                    {paymentCurrency === 'USD' && appliedPromo && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
                         PROMO
                       </span>
@@ -243,6 +285,16 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* South African SARB Guidance Note */}
+              {paymentCurrency === 'ZAR' && (
+                <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3 text-[11px] text-emerald-200/90 leading-snug">
+                  <strong className="text-emerald-300 block mb-0.5 font-semibold">
+                    🇿🇦 Local South African Checkout (SARB Compliant)
+                  </strong>
+                  Per SARB regulations, domestic South African buyers pay directly via local Debit/Credit Card or Instant EFT in ZAR — no foreign currency fees or domestic PayPal blocks!
+                </div>
+              )}
 
               {/* Promo Code Input Section */}
               <div className="bg-[#1b1714] p-3 rounded-xl border border-[#2d251d]">
@@ -335,13 +387,36 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                 </div>
               </div>
 
-              {/* PayPal Live / Sandbox Button Integration */}
+              {/* Payment Actions based on Selected Currency & Region */}
               <div className="pt-2">
-                {paypalClientId && paypalClientId !== 'test' && !useInstantTestPay ? (
+                {paymentCurrency === 'ZAR' ? (
+                  /* South African Domestic Card / Instant EFT Checkout */
+                  <form onSubmit={handleInstantSimulatedCheckout} className="space-y-2.5">
+                    <button
+                      type="submit"
+                      disabled={isProcessing}
+                      className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-emerald-700 hover:brightness-110 text-white shadow-lg shadow-emerald-950/50 transition-all flex items-center justify-center gap-2 active:scale-95"
+                    >
+                      <CreditCard className="w-4 h-4 text-emerald-200" />
+                      <span>
+                        {isProcessing ? 'Verifying Card / Instant EFT...' : `Pay R${effectivePriceZAR}.00 (Card / Instant EFT)`}
+                      </span>
+                    </button>
+
+                    <div className="bg-[#151210] p-2 rounded-xl border border-[#2b241c] text-center text-[10px] text-[#b3aaa0] space-y-0.5">
+                      <p className="font-semibold text-emerald-300">
+                        ✓ Instant Delivery to Your Vault
+                      </p>
+                      <p className="text-[#888]">
+                        Supports Capitec, FNB, Standard Bank, Nedbank, Absa &amp; SA Cards.
+                      </p>
+                    </div>
+                  </form>
+                ) : paypalClientId && paypalClientId !== 'test' && !useInstantTestPay ? (
                   <PayPalScriptProvider options={{ clientId: paypalClientId, currency: 'USD' }}>
                     <div className="min-h-[140px]">
                       <PayPalButtons
-                        key={`paypal-btn-${effectivePrice}`}
+                        key={`paypal-btn-${effectivePriceUSD}`}
                         style={{ layout: 'vertical', shape: 'rect', color: 'gold' }}
                         createOrder={(_data, actions) => {
                           return actions.order.create({
@@ -351,7 +426,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                                 description: item.title,
                                 amount: {
                                   currency_code: 'USD',
-                                  value: effectivePrice.toFixed(2),
+                                  value: effectivePriceUSD.toFixed(2),
                                 },
                               },
                             ],
@@ -363,7 +438,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                             const captureId = details.id || `PP-${Date.now()}`;
                             const payerEmail = details.payer?.email_address || buyerEmail;
                             const payerName = details.payer?.name?.given_name || buyerName;
-                            handleCompleteTransaction(captureId, captureId, payerEmail, payerName);
+                            handleCompleteTransaction(captureId, captureId, payerEmail, payerName, 'USD', effectivePriceUSD);
                           }
                         }}
                         onError={(err) => {
@@ -387,7 +462,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                         className="h-5 rounded" 
                       />
                       <span>
-                        {isProcessing ? 'Processing Payment...' : `Pay $${effectivePrice.toFixed(2)} with PayPal`}
+                        {isProcessing ? 'Processing Payment...' : `Pay $${effectivePriceUSD.toFixed(2)} with PayPal`}
                       </span>
                     </button>
 

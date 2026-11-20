@@ -115,45 +115,47 @@ export const BookReviewsModal: React.FC<BookReviewsModalProps> = ({
             <div className="text-center sm:text-left flex items-center gap-4">
               <div>
                 <div className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
-                  4.7
+                  {stats.count > 0 ? stats.average.toFixed(1) : '5.0'}
                 </div>
                 <div className="flex items-center justify-center sm:justify-start gap-1 mt-1 text-amber-400">
                   {Array.from({ length: 5 }, (_, i) => (
                     <Star
                       key={i}
-                      className={`w-4 h-4 ${i < 4 ? 'fill-amber-400' : 'fill-amber-400/50'}`}
+                      className={`w-4 h-4 ${
+                        stats.count > 0
+                          ? i < Math.round(stats.average)
+                            ? 'fill-amber-400'
+                            : 'text-[#443b32]'
+                          : 'fill-amber-400'
+                      }`}
                     />
                   ))}
                 </div>
                 <p className="text-[11px] text-[#a1998f] mt-1">
-                  184 Verified Ratings • 96% Recommended
+                  {stats.count > 0
+                    ? `${stats.count} Verified Rating${stats.count === 1 ? '' : 's'} • 100% Recommended`
+                    : '★ New First Edition • Be the first verified buyer to leave a review!'}
                 </p>
               </div>
             </div>
 
             {/* Rating Breakdown Bars */}
             <div className="w-full sm:w-1/2 space-y-1 text-[11px] text-[#b3aaa0]">
-              <div className="flex items-center gap-2">
-                <span className="w-10 text-right">5 Star</span>
-                <div className="flex-1 bg-[#131110] rounded-full h-2 overflow-hidden border border-[#2e2720]">
-                  <div className="bg-amber-400 h-full rounded-full" style={{ width: '82%' }}></div>
-                </div>
-                <span className="w-8 text-right font-mono text-[#dea374]">82%</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-10 text-right">4 Star</span>
-                <div className="flex-1 bg-[#131110] rounded-full h-2 overflow-hidden border border-[#2e2720]">
-                  <div className="bg-amber-400/80 h-full rounded-full" style={{ width: '14%' }}></div>
-                </div>
-                <span className="w-8 text-right font-mono text-[#dea374]">14%</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-10 text-right">3 Star</span>
-                <div className="flex-1 bg-[#131110] rounded-full h-2 overflow-hidden border border-[#2e2720]">
-                  <div className="bg-amber-400/50 h-full rounded-full" style={{ width: '4%' }}></div>
-                </div>
-                <span className="w-8 text-right font-mono text-[#dea374]">4%</span>
-              </div>
+              {[5, 4, 3, 2, 1].map((star) => {
+                const pct = stats.breakdown[star] || 0;
+                return (
+                  <div key={star} className="flex items-center gap-2">
+                    <span className="w-10 text-right">{star} Star</span>
+                    <div className="flex-1 bg-[#131110] rounded-full h-2 overflow-hidden border border-[#2e2720]">
+                      <div
+                        className="bg-amber-400 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      ></div>
+                    </div>
+                    <span className="w-8 text-right font-mono text-[#dea374]">{pct}%</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -315,49 +317,59 @@ export const BookReviewsModal: React.FC<BookReviewsModalProps> = ({
               Customer Reviews ({reviews.length})
             </h4>
 
-            <div className="space-y-3">
-              {reviews.map((rev) => (
-                <div
-                  key={rev.id}
-                  className="bg-[#1e1915] border border-[#2e261f] rounded-2xl p-4 space-y-2 hover:border-[#cf7b3e]/40 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-white">{rev.authorName}</span>
-                        {rev.isVerifiedBuyer && (
-                          <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-950/70 px-2 py-0.2 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                            <CheckCircle2 className="w-2.5 h-2.5" />
-                            <span>Verified Buyer</span>
-                          </span>
+            {reviews.length === 0 ? (
+              <div className="bg-[#1e1915] border border-[#2e261f] rounded-2xl p-6 text-center space-y-2">
+                <Star className="w-8 h-8 text-amber-400 mx-auto fill-amber-400/20" />
+                <h5 className="font-serif font-bold text-white text-sm">No Reviews Yet</h5>
+                <p className="text-xs text-[#a8a196] max-w-sm mx-auto leading-relaxed">
+                  Be the first verified buyer to leave a rating and review for this brand-new collection!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="bg-[#1e1915] border border-[#2e261f] rounded-2xl p-4 space-y-2 hover:border-[#cf7b3e]/40 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs text-white">{rev.authorName}</span>
+                          {rev.isVerifiedBuyer && (
+                            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-950/70 px-2 py-0.2 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              <span>Verified Buyer</span>
+                            </span>
+                          )}
+                        </div>
+                        {rev.authorLocation && (
+                          <p className="text-[10px] text-[#8e8578]">{rev.authorLocation}</p>
                         )}
                       </div>
-                      {rev.authorLocation && (
-                        <p className="text-[10px] text-[#8e8578]">{rev.authorLocation}</p>
-                      )}
+
+                      <div className="flex items-center gap-1 text-amber-400">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${
+                              i < rev.rating ? 'fill-amber-400' : 'text-[#443b32]'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-[10px] text-[#8e8578] font-mono ml-1">
+                          {rev.date}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1 text-amber-400">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${
-                            i < rev.rating ? 'fill-amber-400' : 'text-[#443b32]'
-                          }`}
-                        />
-                      ))}
-                      <span className="text-[10px] text-[#8e8578] font-mono ml-1">
-                        {rev.date}
-                      </span>
-                    </div>
+                    <p className="text-xs text-[#d1c8bd] leading-relaxed italic">
+                      "{rev.comment}"
+                    </p>
                   </div>
-
-                  <p className="text-xs text-[#d1c8bd] leading-relaxed italic">
-                    "{rev.comment}"
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

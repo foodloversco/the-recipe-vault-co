@@ -32,7 +32,8 @@ import {
   Gift,
   Sparkles,
   ShoppingBag,
-  Search
+  Search,
+  Check
 } from 'lucide-react';
 
 const WhatsAppIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
@@ -132,23 +133,21 @@ export const BookReader: React.FC<BookReaderProps> = ({
     setShowToc(false);
     playPageFlipSound();
   };
-  const [hasSharedForBonus, setHasSharedForBonus] = useState<boolean>(() => {
+  // Viral Feature: 1 Page per Platform Shared (WhatsApp, Facebook, Instagram, TikTok)
+  // 5 pages free initially. Each platform share unlocks 1 additional page (up to Page 9).
+  const [sharedPlatforms, setSharedPlatforms] = useState<string[]>(() => {
     try {
-      return localStorage.getItem(`rv_shared_bonus_${book.id}`) === 'true';
+      const stored = localStorage.getItem(`rv_shared_platforms_${book.id}`);
+      if (stored) return JSON.parse(stored);
+      const legacy = localStorage.getItem(`rv_shared_platform_${book.id}`);
+      if (legacy) return [legacy];
+      return [];
     } catch {
-      return false;
+      return [];
     }
   });
   const [bonusShareSuccess, setBonusShareSuccess] = useState<string | null>(null);
 
-  // 1 platform per book lock & 6-second anti-fraud timer states
-  const [sharedPlatform, setSharedPlatform] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(`rv_shared_platform_${book.id}`);
-    } catch {
-      return null;
-    }
-  });
   const [sharingPlatformName, setSharingPlatformName] = useState<string | null>(null);
   const [shareCountdown, setShareCountdown] = useState<number>(0);
   const [isVerifyingShare, setIsVerifyingShare] = useState<boolean>(false);
@@ -162,13 +161,13 @@ export const BookReader: React.FC<BookReaderProps> = ({
   }, []);
 
   const basePreviewLimit = book.previewPagesAllowed || 5; // 5 pages free initially
-  const bonusPagesCount = hasSharedForBonus ? 4 : 0; // +4 pages if shared
-  const effectivePreviewLimit = basePreviewLimit + bonusPagesCount; // 5 if unshared, 9 if shared!
+  const bonusPagesCount = Math.min(4, sharedPlatforms.length); // 1 bonus page per shared platform (max 4)
+  const effectivePreviewLimit = basePreviewLimit + bonusPagesCount; // 5 up to 9 pages
+  const hasSharedForBonus = sharedPlatforms.length > 0;
 
   const currentPageNumber = currentPageIndex + 1;
   const currentPage: RecipePage | undefined = pages[currentPageIndex];
   const isPageLocked = !isUnlocked && currentPageIndex >= effectivePreviewLimit;
-  const isCurrentPageBonus = !isUnlocked && hasSharedForBonus && currentPageIndex >= basePreviewLimit && currentPageIndex < effectivePreviewLimit;
 
   // Synthesize a subtle, realistic paper page-flip rustle sound via Web Audio API
   const playPageFlipSound = () => {
@@ -376,15 +375,14 @@ export const BookReader: React.FC<BookReaderProps> = ({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  // Viral Feature: Share on Page 6 via WhatsApp, Facebook, Instagram or TikTok
+  // Viral Feature: Share to unlock 1 page per platform
   // Requirements:
-  // 1. Must be away/wait at least 6 seconds before unlocking
-  // 2. Can only use one platform per book
-  // 3. Shares book image preview + message from friend
+  // 1. Must be away / wait at least 6 seconds before unlocking
+  // 2. 1 platform share = exactly 1 page unlocked (can only use each platform once per book)
+  // 3. Displays book cover thumbnail in share card preview alongside message from friend
   const handlePlatformShare = (platformKey: 'whatsapp' | 'facebook' | 'instagram' | 'tiktok', platformTitle: string) => {
-    const lockedPlatform = localStorage.getItem(`rv_shared_platform_${book.id}`);
-    if (lockedPlatform && lockedPlatform !== platformKey) {
-      alert(`You can only use 1 platform per book. This book was already shared with ${lockedPlatform.toUpperCase()}.`);
+    if (sharedPlatforms.includes(platformKey)) {
+      alert(`You have already shared via ${platformTitle}. Please select another platform to unlock the next page.`);
       return;
     }
 
@@ -426,14 +424,14 @@ export const BookReader: React.FC<BookReaderProps> = ({
         shareTimerRef.current = null;
         setIsVerifyingShare(false);
 
+        const updated = Array.from(new Set([...sharedPlatforms, platformKey]));
+        setSharedPlatforms(updated);
+
         try {
-          localStorage.setItem(`rv_shared_bonus_${book.id}`, 'true');
-          localStorage.setItem(`rv_shared_platform_${book.id}`, platformKey);
+          localStorage.setItem(`rv_shared_platforms_${book.id}`, JSON.stringify(updated));
         } catch {}
 
-        setSharedPlatform(platformKey);
-        setHasSharedForBonus(true);
-        setBonusShareSuccess(`🎉 Share verified on ${platformTitle}! 4 Bonus Pages Unlocked (Pages 6 to 9).`);
+        setBonusShareSuccess(`🎉 Share verified on ${platformTitle}! Page ${currentPageNumber} is now unlocked.`);
         playPageFlipSound();
 
         setTimeout(() => {
@@ -738,23 +736,23 @@ export const BookReader: React.FC<BookReaderProps> = ({
                   </span>
                 </div>
 
-                {!hasSharedForBonus ? (
-                  /* Option A (Page 6 reached, initial 5 pages done): Share to unlock next 4 pages for FREE! */
+                {sharedPlatforms.length < 4 && currentPageIndex < 9 ? (
+                  /* Option A: Share to unlock 1 extra page (1 page per platform, 4 platforms total) */
                   <>
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-[#cf7b3e]/30 border-2 border-amber-500 flex items-center justify-center mb-1 text-amber-400 shadow-lg shadow-amber-900/30">
                       <Gift className="w-6 h-6 text-amber-400 animate-bounce" />
                     </div>
 
                     <span className="text-[10px] font-bold tracking-widest uppercase text-amber-400 mb-0.5">
-                      FREE BONUS RECIPES UNLOCK
+                      VIRAL BONUS UNLOCK • {sharedPlatforms.length} OF 4 SHARED
                     </span>
 
-                    <h3 className="font-serif text-base sm:text-lg font-bold text-white mb-1 leading-tight">
-                      Unlock the Next 4 Pages Free!
+                    <h3 className="font-serif text-base sm:text-lg font-bold text-white mb-1 leading-tight text-center">
+                      Unlock Page {currentPageNumber} for FREE!
                     </h3>
 
-                    <p className="text-[11px] text-[#b8b0a5] mb-1.5 leading-relaxed">
-                      Choose 1 platform to share with friends. After a 6-second verification, Pages 6, 7, 8 &amp; 9 unlock immediately!
+                    <p className="text-[11px] text-[#b8b0a5] mb-1.5 leading-relaxed text-center">
+                      Share on 1 platform below to unlock Page {currentPageNumber}. Each platform unlocks 1 page (4 platforms = 4 extra recipes)!
                     </p>
 
                     {/* 6-Second Verification Countdown Screen */}
@@ -767,7 +765,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
                           Verifying Share on {sharingPlatformName}...
                         </span>
                         <p className="text-[10px] text-[#c2bcaf] mt-1 leading-snug">
-                          Please complete your share. Unlocking the next 4 recipes in <strong>{shareCountdown} seconds</strong>...
+                          Please complete your share. Unlocking Page {currentPageNumber} in <strong>{shareCountdown} seconds</strong>...
                         </p>
                         <div className="w-full bg-[#2c241c] h-1.5 rounded-full mt-2.5 overflow-hidden">
                           <div 
@@ -778,62 +776,97 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       </div>
                     ) : (
                       <>
+                        {/* Book Cover Image & Friend Message Preview */}
+                        <div className="flex items-center gap-2.5 bg-[#191512] border border-[#332a21] rounded-xl p-2.5 my-1 text-left w-full">
+                          <img
+                            src={book.coverImage}
+                            alt={book.title}
+                            className="w-14 h-20 object-cover rounded-lg border border-[#cf7b3e]/50 shadow-md flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 text-[9.5px] text-[#dea374] font-semibold mb-0.5">
+                              <Sparkles className="w-3 h-3 flex-shrink-0 text-amber-400" />
+                              <span>Preview sent to your friend:</span>
+                            </div>
+                            <p className="text-[9px] text-[#d4cec5] italic leading-tight line-clamp-3 bg-[#12100e] p-1.5 rounded-lg border border-[#26201a]">
+                              "Hey! A friend shared this awesome cookbook with you: <strong>{book.title}</strong> on The Recipe Vault Co. 🔥 Check out the 30 recipes, 108 phone-ready pages &amp; free preview here!"
+                            </p>
+                            <div className="flex items-center justify-between text-[8px] text-[#8a8276] mt-1">
+                              <span>✓ 1 page per platform</span>
+                              <span>• 6s verification</span>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* 4 Social Share Buttons (WhatsApp, Facebook, Instagram, TikTok) */}
                         <div className="grid grid-cols-2 gap-2 w-full my-1.5">
                           {/* WhatsApp */}
-                          <button
-                            type="button"
-                            onClick={() => handlePlatformShare('whatsapp', 'WhatsApp')}
-                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
-                          >
-                            <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate">WhatsApp</span>
-                          </button>
+                          {sharedPlatforms.includes('whatsapp') ? (
+                            <div className="py-2 px-2 rounded-xl font-bold text-[10.5px] bg-[#14261b] text-emerald-400 border border-emerald-500/40 flex items-center justify-center gap-1 opacity-75 cursor-default truncate">
+                              <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">WhatsApp (Used)</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handlePlatformShare('whatsapp', 'WhatsApp')}
+                              className="py-2 px-2 rounded-xl font-bold text-xs bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                            >
+                              <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">WhatsApp (+1)</span>
+                            </button>
+                          )}
 
                           {/* Facebook */}
-                          <button
-                            type="button"
-                            onClick={() => handlePlatformShare('facebook', 'Facebook')}
-                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-[#1877F2] hover:bg-[#1464cc] text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
-                          >
-                            <FacebookIcon className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate">Facebook</span>
-                          </button>
+                          {sharedPlatforms.includes('facebook') ? (
+                            <div className="py-2 px-2 rounded-xl font-bold text-[10.5px] bg-[#121f30] text-blue-300 border border-blue-500/40 flex items-center justify-center gap-1 opacity-75 cursor-default truncate">
+                              <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">Facebook (Used)</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handlePlatformShare('facebook', 'Facebook')}
+                              className="py-2 px-2 rounded-xl font-bold text-xs bg-[#1877F2] hover:bg-[#1464cc] text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                            >
+                              <FacebookIcon className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">Facebook (+1)</span>
+                            </button>
+                          )}
 
                           {/* Instagram */}
-                          <button
-                            type="button"
-                            onClick={() => handlePlatformShare('instagram', 'Instagram')}
-                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:brightness-110 text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
-                          >
-                            <InstagramIcon className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate">Instagram</span>
-                          </button>
+                          {sharedPlatforms.includes('instagram') ? (
+                            <div className="py-2 px-2 rounded-xl font-bold text-[10.5px] bg-[#241322] text-pink-300 border border-pink-500/40 flex items-center justify-center gap-1 opacity-75 cursor-default truncate">
+                              <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">Instagram (Used)</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handlePlatformShare('instagram', 'Instagram')}
+                              className="py-2 px-2 rounded-xl font-bold text-xs bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:brightness-110 text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                            >
+                              <InstagramIcon className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">Instagram (+1)</span>
+                            </button>
+                          )}
 
                           {/* TikTok */}
-                          <button
-                            type="button"
-                            onClick={() => handlePlatformShare('tiktok', 'TikTok')}
-                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-black hover:bg-[#141414] text-white border border-[#25F4EE]/60 hover:border-[#FE2C55] shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
-                          >
-                            <TikTokIcon className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate">TikTok</span>
-                          </button>
-                        </div>
-
-                        {/* Message preview from friend */}
-                        <div className="bg-[#191512] border border-[#332a21] rounded-xl p-2 my-1 text-left w-full">
-                          <div className="flex items-center gap-1 text-[9px] text-[#dea374] font-semibold mb-0.5">
-                            <Sparkles className="w-3 h-3 flex-shrink-0" />
-                            <span>Message shared with book cover &amp; site:</span>
-                          </div>
-                          <p className="text-[9px] text-[#b8b0a4] italic leading-tight bg-[#12100e] p-1.5 rounded-lg border border-[#26201a]">
-                            "Hey! A friend shared this awesome cookbook with you: <strong>{book.title}</strong> on The Recipe Vault Co. 🔥 Check out the 30 recipes, 108 pages &amp; free preview here!"
-                          </p>
-                          <div className="flex items-center justify-between text-[8px] text-[#797166] mt-1">
-                            <span>✓ 1 platform per book</span>
-                            <span>• 6-second verification</span>
-                          </div>
+                          {sharedPlatforms.includes('tiktok') ? (
+                            <div className="py-2 px-2 rounded-xl font-bold text-[10.5px] bg-[#13161c] text-[#25F4EE] border border-[#25F4EE]/40 flex items-center justify-center gap-1 opacity-75 cursor-default truncate">
+                              <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">TikTok (Used)</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handlePlatformShare('tiktok', 'TikTok')}
+                              className="py-2 px-2 rounded-xl font-bold text-xs bg-black hover:bg-[#141414] text-white border border-[#25F4EE]/60 hover:border-[#FE2C55] shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                            >
+                              <TikTokIcon className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">TikTok (+1)</span>
+                            </button>
+                          )}
                         </div>
                       </>
                     )}
@@ -857,11 +890,11 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       className="w-full py-2 px-3 rounded-xl font-bold text-xs bg-[#241d17] hover:bg-[#30271f] text-[#dea374] border border-[#3f3428] transition-all flex items-center justify-center gap-1.5 mb-1"
                     >
                       <CreditCard className="w-3.5 h-3.5" />
-                      <span>Buy Full Book &amp; PDF (${book.price.toFixed(2)})</span>
+                      <span>Buy Full Book &amp; PDF ($1.00 USD / R20 ZAR)</span>
                     </button>
                   </>
                 ) : (
-                  /* Option B (User shared, enjoyed pages 6-9, now at Page 10+): Final paywall */
+                  /* Option B (All 4 platforms shared or page 10 reached): Final paywall */
                   <>
                     <div className="w-14 h-14 rounded-full bg-[#cf7b3e]/20 border border-[#cf7b3e] flex items-center justify-center mb-3 text-[#dea374] animate-pulse">
                       <Lock className="w-7 h-7" />
@@ -871,15 +904,15 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       FREE PREVIEW COMPLETED (9 PAGES)
                     </span>
 
-                    <h3 className="font-serif text-lg sm:text-xl font-bold text-white mb-1.5 leading-tight">
+                    <h3 className="font-serif text-lg sm:text-xl font-bold text-white mb-1.5 leading-tight text-center">
                       Unlock All {totalPages} Pages of {book.title}
                     </h3>
 
-                    <p className="text-xs text-[#b8b0a5] mb-3 leading-relaxed">
+                    <p className="text-xs text-[#b8b0a5] mb-3 leading-relaxed text-center">
                       You’ve enjoyed 9 free recipes (including your 4 bonus shared pages). Unlock all 30 iconic recipes, grocery checklists, and printable PDF now!
                     </p>
 
-                    <div className="w-full bg-[#27211b]/95 p-2.5 rounded-xl border border-[#3f352c] mb-3">
+                    <div className="w-full bg-[#27211b]/95 p-2.5 rounded-xl border border-[#3f352c] mb-3 text-center">
                       <div className="flex items-baseline justify-center gap-1.5">
                         <span className="text-2xl font-extrabold text-white">${book.price.toFixed(2)}</span>
                         {book.originalPrice && (
@@ -888,6 +921,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
                           </span>
                         )}
                         <span className="text-[10px] text-[#dea374] font-medium">USD</span>
+                        <span className="text-xs text-[#8e8578] font-bold">• R{book.priceZAR ?? 20} ZAR</span>
                       </div>
                       <p className="text-[9px] text-[#9c9388] mt-0.5">
                         One-time purchase • Instant Full Book &amp; PDF Download
@@ -907,7 +941,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-2"
                     >
                       <CreditCard className="w-4 h-4" />
-                      <span>Buy &amp; Unlock Full Book (${book.price.toFixed(2)})</span>
+                      <span>Buy &amp; Unlock Full Book ($1 USD / R20 ZAR)</span>
                     </button>
                   </>
                 )}
@@ -943,14 +977,6 @@ export const BookReader: React.FC<BookReaderProps> = ({
           ) : activePdfSlideUrl ? (
             /* Full-Bleed 9:16 Rendered PDF Page (with left/right tap zones to flip like a real book!) */
             <div className="h-full w-full relative flex items-center justify-center bg-[#0e0c0a] overflow-hidden group">
-              {/* Bonus Page indicator banner on pages 6-9 */}
-              {isCurrentPageBonus && (
-                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 bg-amber-500/25 backdrop-blur-md border border-amber-500/60 text-amber-200 text-[10px] font-bold px-3 py-0.5 rounded-full shadow-lg flex items-center gap-1.5 pointer-events-none">
-                  <Sparkles className="w-3 h-3 text-amber-300" />
-                  <span>Bonus Page {currentPageNumber} of 9 (Unlocked via {sharedPlatform ? sharedPlatform.toUpperCase() : 'Share'})</span>
-                </div>
-              )}
-
               <img
                 src={activePdfSlideUrl}
                 alt={`${book.title} - Page ${currentPageNumber}`}

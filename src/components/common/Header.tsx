@@ -113,18 +113,17 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Groceries</span>
           </button>
 
-          <button
-            onClick={() => onNavigate('admin')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm rounded-full font-semibold transition-all ${
-              currentView === 'admin'
-                ? 'bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/30'
-                : 'bg-[#25221e] text-[#dea374] border border-[#cf7b3e]/30 hover:bg-[#2f2b26]'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Admin Portal</span>
-            <span className="sm:hidden">Admin</span>
-          </button>
+          {/* Admin Portal Button - Hidden from public TikTok visitors, visible only when accessed via ?view=admin */}
+          {currentView === 'admin' && (
+            <button
+              onClick={() => onNavigate('admin')}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm rounded-full font-semibold bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/30 transition-all"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Admin Portal (Active)</span>
+              <span className="sm:hidden">Admin</span>
+            </button>
+          )}
         </nav>
       </div>
     </header>

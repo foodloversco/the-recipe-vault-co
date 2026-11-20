@@ -6,7 +6,7 @@ export const INITIAL_BOOKS: Book[] = [
   {
     id: 'vault-vol-01',
     slug: 'south-africa-braai-heritage',
-    title: 'South Africa Braai & Heritage Series 1',
+    title: 'South African Braai & Heritage Series 1',
     subtitle: 'Volume 01: Fire, Ember & Heritage',
     tagline: 'Unlock the Complete 108-Page South African Braai & Heritage: Series 1 Digital Collection for Just $1!',
     description: `Stop losing recipes in your saved videos or guessing measurements at the coals. Get all 30 iconic South African braai & heritage recipes, 30 aisle-by-aisle grocery checklists, 30 full-page dish photos, and 5 essential wood, coal, spice & temperature guides in one phone-ready vertical PDF.
@@ -22,8 +22,9 @@ Inside Series 1 (Chapters 01–08):
 Tap below to unlock all 30 recipes + grocery lists instantly for $1!`,
     coverImage: '/assets/images/south-africa-braai-cover.jpg',
     price: 1.00,
+    priceZAR: 20,
     originalPrice: 12.99,
-    soldCount: 385,
+    soldCount: 0,
     likesCount: 191,
     recipeCount: 30,
     previewPagesAllowed: 5,
@@ -38,7 +39,7 @@ Tap below to unlock all 30 recipes + grocery lists instantly for $1!`,
       {
         id: 'p1',
         pageNumber: 1,
-        title: 'South Africa Braai & Heritage Series 1',
+        title: 'South African Braai & Heritage Series 1',
         subtitle: '30 Iconic Traditional Recipes • From the Coals to the Table',
         category: 'Cover',
         isCover: true,

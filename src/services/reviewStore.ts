@@ -1,66 +1,11 @@
 import { BookReview } from '../types';
 
-const REVIEWS_STORAGE_KEY = 'the_recipe_vault_reviews_v1';
+const REVIEWS_STORAGE_KEY = 'the_recipe_vault_reviews_v2';
 const BOOK_OPENS_KEY_PREFIX = 'the_recipe_vault_book_opens_';
 const HAS_RATED_KEY_PREFIX = 'the_recipe_vault_has_rated_';
 
-export const INITIAL_REVIEWS: BookReview[] = [
-  {
-    id: 'rev-01',
-    bookId: 'south-africa-braai-heritage',
-    authorName: 'Dirk van der Merwe',
-    authorLocation: 'Cape Town, South Africa',
-    rating: 5,
-    comment:
-      'The boerewors and roosterkoek ratios are 100% authentic heritage perfection. Having the grocery list on my phone while at the butchery saved me 20 minutes. Best $1 I ever spent!',
-    date: '2 days ago',
-    isVerifiedBuyer: true,
-  },
-  {
-    id: 'rev-02',
-    bookId: 'south-africa-braai-heritage',
-    authorName: 'Sipho Ndlovu',
-    authorLocation: 'Johannesburg, South Africa',
-    rating: 5,
-    comment:
-      'Cooked the traditional oxtail potjie over kameeldoring coals this past weekend. Fall-off-the-bone tender. The phone-ready vertical layout is brilliant when cooking with tongs in one hand.',
-    date: '5 days ago',
-    isVerifiedBuyer: true,
-  },
-  {
-    id: 'rev-03',
-    bookId: 'south-africa-braai-heritage',
-    authorName: 'Annelize Botha',
-    authorLocation: 'Pretoria, South Africa',
-    rating: 5,
-    comment:
-      'The braaied snoek with apricot butter and the Durban bunny chow are worth 10x the price alone. Love flipping through the 3D pages like a real book on my tablet!',
-    date: '1 week ago',
-    isVerifiedBuyer: true,
-  },
-  {
-    id: 'rev-04',
-    bookId: 'south-africa-braai-heritage',
-    authorName: 'Gareth Thorne',
-    authorLocation: 'Durban, South Africa',
-    rating: 4,
-    comment:
-      'Fantastic collection! The wood ember temperature guide helped me stop burning my steaks. 4.7 stars easily — crisp photography and foolproof spice blends.',
-    date: '2 weeks ago',
-    isVerifiedBuyer: true,
-  },
-  {
-    id: 'rev-05',
-    bookId: 'south-africa-braai-heritage',
-    authorName: 'Marike Venter',
-    authorLocation: 'Stellenbosch, South Africa',
-    rating: 5,
-    comment:
-      'The Malva pudding and melktert recipes brought back childhood memories. So glad this isn’t a messy video that disappears; it’s a permanent printable vault card collection.',
-    date: '2 weeks ago',
-    isVerifiedBuyer: true,
-  },
-];
+// Real verified reviews start empty on launch to guarantee 100% authenticity for TikTok visitors & payment compliance
+export const INITIAL_REVIEWS: BookReview[] = [];
 
 class ReviewStore {
   private reviews: BookReview[] = [];
@@ -75,11 +20,11 @@ class ReviewStore {
       if (stored) {
         this.reviews = JSON.parse(stored);
       } else {
-        this.reviews = [...INITIAL_REVIEWS];
+        this.reviews = [];
         this.save();
       }
     } catch {
-      this.reviews = [...INITIAL_REVIEWS];
+      this.reviews = [];
     }
   }
 
@@ -93,13 +38,13 @@ class ReviewStore {
 
   public getReviewsForBook(bookIdOrSlug: string): BookReview[] {
     const norm = bookIdOrSlug.toLowerCase();
-    const list = this.reviews.filter(
+    return this.reviews.filter(
       (r) =>
         r.bookId === norm ||
         r.bookId === 'south-africa-braai-heritage' ||
+        r.bookId === 'south-african-braai-heritage' ||
         r.bookId === 'vault-vol-01'
     );
-    return list.length > 0 ? list : INITIAL_REVIEWS;
   }
 
   public getRatingStats(bookIdOrSlug: string): {
@@ -109,15 +54,27 @@ class ReviewStore {
   } {
     const bookReviews = this.getReviewsForBook(bookIdOrSlug);
     if (bookReviews.length === 0) {
-      return { average: 4.7, count: 184, breakdown: { 5: 85, 4: 12, 3: 3, 2: 0, 1: 0 } };
+      return { average: 0, count: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
     }
 
     const total = bookReviews.reduce((sum, r) => sum + r.rating, 0);
     const avg = Number((total / bookReviews.length).toFixed(1));
+    const breakdown: { [star: number]: number } = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+    bookReviews.forEach((r) => {
+      const star = Math.min(5, Math.max(1, Math.round(r.rating)));
+      breakdown[star] = (breakdown[star] || 0) + 1;
+    });
+
+    const percentBreakdown: { [star: number]: number } = {};
+    for (let s = 1; s <= 5; s++) {
+      percentBreakdown[s] = Math.round(((breakdown[s] || 0) / bookReviews.length) * 100);
+    }
+
     return {
-      average: avg > 0 ? avg : 4.7,
-      count: bookReviews.length + 179, // Represents verified cohort
-      breakdown: { 5: 82, 4: 14, 3: 4, 2: 0, 1: 0 },
+      average: avg,
+      count: bookReviews.length,
+      breakdown: percentBreakdown,
     };
   }
 

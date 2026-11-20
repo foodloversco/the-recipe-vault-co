@@ -305,7 +305,9 @@ export const MyVaultPage: React.FC<MyVaultPageProps> = ({
                     books.forEach((b) => {
                       localStorage.removeItem(`rv_shared_bonus_${b.id}`);
                       localStorage.removeItem(`rv_shared_platform_${b.id}`);
+                      localStorage.removeItem(`rv_shared_platforms_${b.id}`);
                     });
+                    localStorage.removeItem('the_recipe_vault_reviews_v1');
                     onRefresh();
                   }}
                   className="text-[10px] text-[#7d756b] hover:text-rose-400 underline transition-colors"

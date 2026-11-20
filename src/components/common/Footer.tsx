@@ -49,7 +49,9 @@ export const Footer: React.FC = () => {
             "{APP_SUBHEADING}"
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-[#635d55]">
-            <p>© {new Date().getFullYear()} The Recipe Vault Co. All rights reserved. Powered by Vercel & Capacitor.</p>
+            <p>
+              <a href="?view=admin" className="hover:text-[#cf7b3e] transition-colors" title="Vault Owner Access">©</a> {new Date().getFullYear()} The Recipe Vault Co. All rights reserved. Powered by Vercel &amp; Capacitor.
+            </p>
             <p>Designed for mobile phone culinary reading & offline kitchen access.</p>
           </div>
         </div>

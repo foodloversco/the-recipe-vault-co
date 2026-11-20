@@ -32,6 +32,7 @@ export interface Book {
   description: string;
   coverImage: string;
   price: number; // in USD
+  priceZAR?: number; // in South African Rand (e.g. 20)
   originalPrice?: number;
   soldCount?: number; // Admin configurable base count + auto-incremented on each sale
   likesCount?: number; // Starting at 191 + auto-increments on like
