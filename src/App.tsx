@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
 import { Book, Bundle } from './types';
 import { bookStore } from './services/bookStore';
+import { hybridSyncService } from './services/hybridSyncService';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
+import { CulinarySplashLoader } from './components/common/CulinarySplashLoader';
 import { LandingPage } from './components/landing/LandingPage';
 import { BookReader } from './components/reader/BookReader';
 import { AdminPortal } from './components/admin/AdminPortal';
@@ -32,7 +35,27 @@ export const App: React.FC = () => {
       setActiveBookSlug(bookParam);
       setCurrentView('reader');
     }
+
+    // Hybrid Mode A + Mode B: sync live Vercel deploy if online in APK, else stay on offline bundle
+    hybridSyncService.checkAndSyncLiveUpdate().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    // Native Android Hardware Back Button listener
+    const backListener = CapacitorApp.addListener('backButton', () => {
+      if (checkoutItem) {
+        setCheckoutItem(null);
+      } else if (currentView === 'reader' || currentView === 'admin') {
+        handleNavigate('landing');
+      } else {
+        CapacitorApp.exitApp();
+      }
+    });
+
+    return () => {
+      backListener.then((sub) => sub.remove()).catch(() => {});
+    };
+  }, [currentView, checkoutItem]);
 
   const refreshData = () => {
     const loadedBooks = bookStore.getBooks();
@@ -89,6 +112,8 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#100f0e] text-[#f5f2eb]">
+      <CulinarySplashLoader />
+
       {/* Show Main Header only when not in reader or admin */}
       {currentView !== 'reader' && currentView !== 'admin' && (
         <Header

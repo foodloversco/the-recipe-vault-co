@@ -92,5 +92,8 @@ export interface AppSettings {
   supabaseAnonKey?: string;
   supabaseBucket?: string;
   adminPasswordHash?: string;
+  // Hybrid Mode A (Vercel Cloud Sync) + Mode B (Offline Bundle Fallback)
+  vercelLiveUrl?: string;
+  hybridUpdateMode?: 'both' | 'cloud-only' | 'offline-only';
 }
 

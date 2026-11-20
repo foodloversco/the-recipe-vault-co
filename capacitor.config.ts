@@ -1,5 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const liveVercelUrl = process.env.VITE_VERCEL_URL?.trim();
+
 const config: CapacitorConfig = {
   appId: 'com.therecipevault.app',
   appName: 'The Recipe Vault Co.',
@@ -7,6 +9,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: false,
+    ...(liveVercelUrl ? { url: liveVercelUrl } : {}),
   },
   plugins: {
     StatusBar: {

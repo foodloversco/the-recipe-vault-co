@@ -4,6 +4,7 @@ import { bookStore } from '../../services/bookStore';
 import { salesStore } from '../../services/salesStore';
 import { storageService } from '../../services/storageService';
 import { settingsStore } from '../../services/settingsStore';
+import { hybridSyncService } from '../../services/hybridSyncService';
 import { 
   UploadCloud, 
   DollarSign, 
@@ -71,6 +72,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   const [r2PublicUrl, setR2PublicUrl] = useState('');
   const [supabaseUrl, setSupabaseUrl] = useState('');
   const [supabaseKey, setSupabaseKey] = useState('');
+  const [vercelLiveUrl, setVercelLiveUrl] = useState('');
+  const [hybridUpdateMode, setHybridUpdateMode] = useState<'both' | 'cloud-only' | 'offline-only'>('both');
   const [storageSavedMsg, setStorageSavedMsg] = useState('');
 
   useEffect(() => {
@@ -86,6 +89,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     setR2PublicUrl(currentSettings.r2PublicUrl || '');
     setSupabaseUrl(currentSettings.supabaseUrl || '');
     setSupabaseKey(currentSettings.supabaseAnonKey || '');
+    setVercelLiveUrl(currentSettings.vercelLiveUrl || '');
+    setHybridUpdateMode(currentSettings.hybridUpdateMode || 'both');
   }, []);
 
   const refreshData = () => {
@@ -197,6 +202,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
       r2PublicUrl,
       supabaseUrl: supabaseUrl,
       supabaseAnonKey: supabaseKey,
+      vercelLiveUrl: vercelLiveUrl.trim(),
+      hybridUpdateMode,
     });
 
     storageService.saveConfig({
@@ -211,7 +218,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
       supabaseBucket: 'recipe-vault-pdfs',
     });
 
-    setStorageSavedMsg('Settings, Cloudflare R2 & PayPal configurations saved successfully!');
+    setStorageSavedMsg('Settings, Cloudflare R2, PayPal & Hybrid Vercel/Capacitor configurations saved!');
     setTimeout(() => setStorageSavedMsg(''), 4000);
   };
 
@@ -1085,15 +1092,80 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                   </form>
                 </div>
 
-                {/* Vercel & Capacitor Deployment Notes */}
-                <div className="mt-5 pt-4 border-t border-[#29221b] text-xs">
-                  <div className="flex items-center gap-1.5 text-white font-semibold mb-1">
-                    <Globe className="w-4 h-4 text-[#dea374]" />
-                    <span>Vercel & Capacitor Ready</span>
+                {/* Hybrid Auto-Update & Offline Fallback (Mode A + Mode B) */}
+                <div className="mt-5 pt-4 border-t border-[#29221b] text-xs space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-white font-semibold">
+                      <Globe className="w-4 h-4 text-[#dea374]" />
+                      <span>Hybrid Auto-Update &amp; Offline Fallback (Mode A + Mode B)</span>
+                    </div>
+                    {(() => {
+                      const syncStatus = hybridSyncService.getStatus();
+                      const isBothActive = syncStatus.isOnline && hybridUpdateMode !== 'offline-only';
+                      return (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${
+                            isBothActive
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                              : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                          }`}
+                        >
+                          {isBothActive
+                            ? 'MODE A + MODE B ACTIVE • ONLINE VERCEL OTA + OFFLINE APK FALLBACK'
+                            : 'OFFLINE BUNDLE MODE'}
+                        </span>
+                      );
+                    })()}
                   </div>
+
                   <p className="text-[11px] text-[#8a8175] leading-relaxed">
-                    The app is configured with `capacitor.config.ts` and `vercel.json`. As requested, when you share your Vercel and Capacitor accounts, we will deploy directly to your production domains and mobile builds!
+                    When online, the APK automatically syncs your latest GitHub &rarr; Vercel deployment and caches it on-device. If offline or unreachable, it seamlessly runs the bundled APK assets with zero downtime.
                   </p>
+
+                  <form onSubmit={handleSaveAccounts} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                        Production Vercel URL (Live OTA Source)
+                      </label>
+                      <input
+                        type="url"
+                        value={vercelLiveUrl}
+                        onChange={(e) => setVercelLiveUrl(e.target.value)}
+                        placeholder="https://your-recipe-vault.vercel.app"
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                        Mobile Sync &amp; Offline Strategy
+                      </label>
+                      <select
+                        value={hybridUpdateMode}
+                        onChange={(e) =>
+                          setHybridUpdateMode(e.target.value as 'both' | 'cloud-only' | 'offline-only')
+                        }
+                        className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                      >
+                        <option value="both">
+                          Both: Auto-Update from Vercel + Offline APK Fallback (Recommended)
+                        </option>
+                        <option value="cloud-only">
+                          Mode A Only: Live Vercel Cloud Sync
+                        </option>
+                        <option value="offline-only">
+                          Mode B Only: Bundled Offline APK Assets
+                        </option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2 rounded-xl bg-[#27211c] hover:bg-[#352c25] border border-[#cf7b3e]/40 text-[#dea374] font-bold text-xs transition-all"
+                    >
+                      Save Hybrid Sync Settings
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
