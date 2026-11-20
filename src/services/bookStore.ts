@@ -1,6 +1,7 @@
 import { Book, Bundle, RecipePage, FavoriteRecipeItem } from '../types';
 import { INITIAL_BOOKS, INITIAL_BUNDLES } from '../data/initialBooks';
 import { storageService } from './storageService';
+import { indexedDbService } from './indexedDbService';
 
 const BOOKS_STORAGE_KEY = 'the_recipe_vault_books_v1';
 const BUNDLES_STORAGE_KEY = 'the_recipe_vault_bundles_v1';
@@ -50,12 +51,12 @@ class BookStore {
                 pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_1.pdf',
                 pdfFileName: 'South_African_Braai_Heritage_Series_1.pdf',
                 soldCount: typeof b.soldCount === 'number' && b.soldCount < 40 ? b.soldCount : 0,
-                likesCount: b.likesCount !== undefined ? b.likesCount : 191,
+                likesCount: typeof b.likesCount === 'number' && b.likesCount < 50 ? b.likesCount : 0,
               };
             }
             return {
               ...b,
-              likesCount: b.likesCount !== undefined ? b.likesCount : 0,
+              likesCount: typeof b.likesCount === 'number' && b.likesCount < 50 ? b.likesCount : 0,
             };
           });
         } else {
@@ -66,6 +67,29 @@ class BookStore {
         this.books = [...INITIAL_BOOKS];
         this.saveBooksToStorage();
       }
+
+      // Restore from IndexedDB to pick up heavy uploaded books seamlessly
+      indexedDbService.getAllBooks().then((idbBooks) => {
+        if (idbBooks && idbBooks.length > 0) {
+          let updated = false;
+          idbBooks.forEach((idbBook) => {
+            const exists = this.books.some((b) => b.id === idbBook.id);
+            if (!exists) {
+              this.books.push(idbBook);
+              updated = true;
+            } else {
+              const idx = this.books.findIndex((b) => b.id === idbBook.id);
+              if (idx >= 0 && idbBook.pdfFileUrl && !idbBook.pdfFileUrl.startsWith('indexeddb://')) {
+                this.books[idx] = { ...this.books[idx], ...idbBook };
+                updated = true;
+              }
+            }
+          });
+          if (updated) {
+            this.notifyListeners();
+          }
+        }
+      }).catch(() => {});
 
       const storedBundles = localStorage.getItem(BUNDLES_STORAGE_KEY);
       if (storedBundles) {

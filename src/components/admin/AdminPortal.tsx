@@ -856,6 +856,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                       className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
                     >
                       <option value="Open-Fire & Grilling">Open-Fire & Grilling</option>
+                      <option value="Monthly Recipes">Monthly Recipes (4 Saturdays & 4 Sundays)</option>
                       <option value="Heritage Comfort">Heritage Comfort Food</option>
                       <option value="Global Cuisines">Authentic Global Cuisines</option>
                       <option value="Artisanal Bakes">Artisanal Bakes & Hearth Breads</option>

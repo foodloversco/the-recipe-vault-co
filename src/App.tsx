@@ -138,6 +138,7 @@ export const App: React.FC = () => {
   };
 
   const handleNavigate = (view: string, slug?: string) => {
+    refreshData();
     if (view === 'admin') {
       setCurrentView('admin');
       const url = new URL(window.location.href);
