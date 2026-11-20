@@ -95,7 +95,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-[#211b16] hover:bg-[#2c241e] border border-[#cf7b3e]/40 text-[#dea374] font-bold text-sm transition-all flex items-center justify-center gap-2"
               >
                 <Layers className="w-4 h-4" />
-                <span>Get All 3 Volumes Bundle (${primaryBundle.price.toFixed(2)})</span>
+                <span>{primaryBundle.title} (${primaryBundle.price.toFixed(2)})</span>
               </button>
             )}
           </div>
@@ -252,9 +252,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="bg-gradient-to-r from-[#2a1a11] via-[#1f1610] to-[#16120f] border-2 border-[#cf7b3e]/60 rounded-3xl p-6 sm:p-10 shadow-2xl relative">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
               <div className="space-y-2 max-w-2xl">
-                <span className="text-[11px] font-bold tracking-widest uppercase bg-[#cf7b3e] text-white px-3 py-1 rounded-full shadow-md">
-                  {primaryBundle.badge}
-                </span>
+                {primaryBundle.badge && (
+                  <span className="text-[11px] font-bold tracking-widest uppercase bg-[#cf7b3e] text-white px-3 py-1 rounded-full shadow-md">
+                    {primaryBundle.badge}
+                  </span>
+                )}
 
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white mt-2">
                   {primaryBundle.title}
@@ -265,9 +267,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </p>
 
                 <div className="flex flex-wrap gap-3 pt-2 text-xs text-[#dea374]">
-                  <span>✓ Vol 01: Authentic Heritage Braai</span>
-                  <span>✓ Vol 02: Timeless Comfort Food</span>
-                  <span>✓ Vol 03: Global Street Cuisines</span>
+                  {primaryBundle.bookIds.map((bId) => {
+                    const matched = books.find(b => b.id === bId);
+                    return <span key={bId}>✓ {matched ? matched.title : bId}</span>;
+                  })}
                 </div>
               </div>
 
@@ -277,19 +280,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span className="text-3xl sm:text-4xl font-extrabold text-white">
                     ${primaryBundle.price.toFixed(2)}
                   </span>
-                  <span className="text-sm line-through text-[#797165]">
-                    ${primaryBundle.originalPrice.toFixed(2)}
-                  </span>
+                  {primaryBundle.originalPrice && (
+                    <span className="text-sm line-through text-[#797165]">
+                      ${primaryBundle.originalPrice.toFixed(2)}
+                    </span>
+                  )}
                   <span className="text-xs font-bold text-[#dea374]">USD</span>
                 </div>
-                <p className="text-[10px] text-emerald-400 font-semibold mt-1">Instant All-Volume Access</p>
+                <p className="text-[10px] text-emerald-400 font-semibold mt-1">Instant Multi-Book Access</p>
 
                 <button
                   onClick={() => onOpenCheckout({ id: primaryBundle.id, type: 'bundle', title: primaryBundle.title, price: primaryBundle.price, originalPrice: primaryBundle.originalPrice })}
                   className="w-full mt-3 py-3 px-5 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white font-bold text-xs sm:text-sm shadow-xl shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Unlock Master Bundle ($29.99)</span>
+                  <span>Unlock {primaryBundle.title} (${primaryBundle.price.toFixed(2)})</span>
                 </button>
               </div>
             </div>
