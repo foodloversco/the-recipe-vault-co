@@ -31,8 +31,10 @@ import {
   Percent,
   Clock,
   Sparkles,
-  Calendar
+  Calendar,
+  Image as ImageIcon
 } from 'lucide-react';
+import { compress916Image } from '../../utils/imageCompressor';
 
 interface AdminPortalProps {
   onBackToApp: () => void;
@@ -59,6 +61,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState('');
+
+  // 9:16 Book Cover Image State & Compression
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>('');
+  const [compressedCoverInfo, setCompressedCoverInfo] = useState<{ originalSize: string; compressedSize: string } | null>(null);
+  const [isCompressingCover, setIsCompressingCover] = useState<boolean>(false);
 
   // Promo & Strike-Through Deals State
   const [promoTargetBookId, setPromoTargetBookId] = useState('all');
@@ -124,6 +132,33 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     }
   };
 
+  const handleCoverImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsCompressingCover(true);
+      const result = await compress916Image(file, 1080, 1920, 0.85);
+      setSelectedCoverFile(result.file);
+      setCoverPreviewUrl(result.dataUrl);
+      setCompressedCoverInfo({
+        originalSize: result.originalSizeFormatted,
+        compressedSize: result.compressedSizeFormatted,
+      });
+      setIsCompressingCover(false);
+    } catch (err) {
+      console.error('Image compression failed:', err);
+      setIsCompressingCover(false);
+      alert('Could not compress image. Please select a valid JPG, PNG, or WebP.');
+    }
+  };
+
+  const handleRemoveCoverImage = () => {
+    setSelectedCoverFile(null);
+    setCoverPreviewUrl('');
+    setCompressedCoverInfo(null);
+  };
+
   const handlePdfUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !price) {
@@ -133,11 +168,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
 
     setIsUploading(true);
     let uploadedPdfInfo: { url: string; size: string; name: string } | null = null;
+    let uploadedCoverUrl = coverPreviewUrl || '/assets/images/recipe-card-sample.png';
 
     try {
+      if (selectedCoverFile) {
+        const coverRes = await storageService.uploadImageFile(selectedCoverFile, 'covers');
+        uploadedCoverUrl = coverRes.url;
+      }
+
       if (selectedPdf) {
         uploadedPdfInfo = await storageService.uploadPdfFile(selectedPdf, 'books');
       }
+
+      const coverPage: any = {
+        id: `page-1-${Date.now()}`,
+        pageNumber: 1,
+        title: title,
+        subtitle: subtitle || 'Heritage Recipe Collection',
+        category: 'Cover',
+        isCover: true,
+        image: uploadedCoverUrl,
+        chefTip: 'Full-bleed 9:16 phone cover. Flip horizontally like a Kindle to read recipes.',
+      };
 
       const newBook: Book = {
         id: `vault-book-${Date.now()}`,
@@ -146,30 +198,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         subtitle: subtitle || '30 Phone-Ready Recipes & Categorized Grocery Checklists',
         tagline: 'Instant Printable Culinary Library',
         description: description || 'Editorial recipe collection curated for phone reading and fireside cooking.',
-        coverImage: '/assets/images/recipe-card-sample.png',
+        coverImage: uploadedCoverUrl,
         price: parseFloat(price) || 14.99,
         originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
         recipeCount: parseInt(recipeCount, 10) || 30,
         previewPagesAllowed: parseInt(previewLimit, 10) || 5,
         category,
-        tags: [category, 'Phone-Ready', 'Grocery Checklists'],
+        tags: [category, 'Phone-Ready', 'Grocery Checklists', '9:16 Full Cover'],
         pdfFileUrl: uploadedPdfInfo?.url,
         pdfFileName: uploadedPdfInfo?.name || selectedPdf?.name,
         pdfFileSize: uploadedPdfInfo?.size || '15.0 MB',
-        pages: [], // Will generate placeholder cards or render from PDF
+        pages: [coverPage], // Page 1 is the 9:16 full cover!
         createdAt: new Date().toISOString(),
       };
 
       bookStore.saveBook(newBook);
       refreshData();
       setIsUploading(false);
-      setUploadSuccessMsg(`Successfully created book "${title}" with price $${price} USD!`);
+      setUploadSuccessMsg(`Successfully created book "${title}" with 9:16 full cover & cloud sync!`);
       // Reset form
       setTitle('');
       setSlug('');
       setSubtitle('');
       setDescription('');
       setSelectedPdf(null);
+      handleRemoveCoverImage();
       setTimeout(() => setUploadSuccessMsg(''), 4000);
     } catch (err) {
       console.error(err);
@@ -554,6 +607,73 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                   />
                 </div>
 
+                {/* 9:16 Book Cover Image Upload (Auto-Compressed) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-[#c4bcae]">
+                      9:16 Book Cover Image (Phone &amp; Web Storefront)
+                    </label>
+                    <span className="text-[10px] text-[#dea374] font-semibold">
+                      9:16 Full Aspect Ratio • Auto-Compressed
+                    </span>
+                  </div>
+
+                  {!coverPreviewUrl ? (
+                    <div className="border-2 border-dashed border-[#383027] hover:border-[#cf7b3e] rounded-2xl p-4 text-center cursor-pointer transition-all bg-[#131110]">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverImageSelect}
+                        className="hidden"
+                        id="cover-file-input"
+                      />
+                      <label htmlFor="cover-file-input" className="cursor-pointer block">
+                        <ImageIcon className="w-8 h-8 text-[#dea374] mx-auto mb-1" />
+                        <p className="text-xs font-medium text-white">Click to upload 9:16 vertical book cover</p>
+                        <p className="text-[10px] text-[#70695f] mt-0.5">
+                          Auto-resizes to 1080×1920 &amp; compresses to ~150KB for instant phone loading
+                        </p>
+                        {isCompressingCover && (
+                          <p className="text-[11px] text-[#dea374] font-semibold mt-1">Compressing image...</p>
+                        )}
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-[#131110] border border-[#383027] flex items-center gap-4">
+                      <div className="w-20 aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#dea374] shadow-md flex-shrink-0 bg-[#0e0d0c]">
+                        <img
+                          src={coverPreviewUrl}
+                          alt="9:16 Cover Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30 inline-block mb-1">
+                          9:16 Full Cover Ready
+                        </span>
+                        <h4 className="text-xs font-bold text-white truncate">
+                          {selectedCoverFile ? selectedCoverFile.name : 'Custom Book Cover'}
+                        </h4>
+                        {compressedCoverInfo && (
+                          <p className="text-[11px] text-[#a8a195] mt-0.5">
+                            Compressed: <strong className="text-white">{compressedCoverInfo.compressedSize}</strong> (was {compressedCoverInfo.originalSize})
+                          </p>
+                        )}
+                        <p className="text-[10px] text-[#dea374] mt-0.5">
+                          Displays full 9:16 on storefront &amp; starts as Page 1 in Kindle reader
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoverImage}
+                          className="mt-2 text-[11px] text-rose-400 hover:text-rose-300 font-semibold underline block"
+                        >
+                          Remove / Change Cover
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* PDF File Upload Drag/Drop Box */}
                 <div>
                   <label className="block text-xs font-medium text-[#c4bcae] mb-1">
@@ -634,20 +754,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
-                        {books.length > 1 && (
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete "${b.title}"?`)) {
-                                bookStore.deleteBook(b.id);
-                                refreshData();
-                              }
-                            }}
-                            title="Delete"
-                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-rose-950 text-rose-400"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Delete "${b.title}"? This will permanently remove it from Cloudflare R2 cloud, code, and storefront.`)) {
+                              await bookStore.deleteBook(b.id);
+                              refreshData();
+                            }
+                          }}
+                          title="Delete Book from Cloud & Storefront"
+                          className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-rose-950 text-rose-400 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}

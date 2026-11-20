@@ -130,16 +130,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="w-full md:w-5/12 flex flex-col items-center">
               <div 
                 onClick={() => onOpenReader(featuredBook.slug)}
-                className="w-[260px] h-[430px] rounded-[28px] overflow-hidden border-[6px] border-[#2d251d] shadow-book cursor-pointer group relative transition-transform duration-300 hover:scale-105"
+                className="w-[260px] sm:w-[280px] aspect-[9/16] rounded-[24px] overflow-hidden border-[5px] border-[#2d251d] shadow-book cursor-pointer group relative transition-transform duration-300 hover:scale-105 bg-[#141210]"
               >
                 <img 
                   src={featuredBook.coverImage} 
                   alt={featuredBook.title} 
                   className="w-full h-full object-cover group-hover:brightness-95 transition-all" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-4">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-4">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-[#dea374]">
-                    TAP TO FLIP PREVIEW
+                    CLICK TO OPEN FULL BOOK (PAGE 1)
                   </span>
                   <h3 className="text-sm font-bold text-white leading-tight">
                     {featuredBook.title}
@@ -147,7 +147,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
               </div>
               <span className="text-[11px] text-[#7d756a] mt-3">
-                Default phone viewport: 360 × 600 Kindle view
+                Full 9:16 Phone Ratio • Tap Cover to Read Page 1
               </span>
             </div>
 
@@ -321,24 +321,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="bg-[#181614] border border-[#2d261f] hover:border-[#cf7b3e]/50 rounded-3xl overflow-hidden transition-all flex flex-col justify-between shadow-lg"
               >
                 <div>
-                  {/* Cover */}
-                  <div className="h-48 relative overflow-hidden bg-[#12110f]">
+                  {/* Full 9:16 Cover Image */}
+                  <div 
+                    onClick={() => onOpenReader(book.slug)}
+                    className="w-full aspect-[9/16] max-h-[460px] relative overflow-hidden bg-[#12110f] cursor-pointer group"
+                  >
                     <img 
                       src={book.coverImage} 
                       alt={book.title} 
-                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                     />
                     <div className="absolute top-3 left-3 bg-[#111]/80 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10 text-[10px] font-bold text-white">
                       {book.category}
                     </div>
 
                     <button
-                      onClick={(e) => handleCopyLink(book.slug, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyLink(book.slug, e);
+                      }}
                       title="Copy Unique Link"
                       className="absolute top-3 right-3 bg-[#111]/80 hover:bg-[#111] p-1.5 rounded-full text-[#c2bcaf] border border-white/10"
                     >
                       <Share2 className="w-3.5 h-3.5" />
                     </button>
+
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-xs font-bold text-[#dea374]">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Click to Open Page 1 Full Screen</span>
+                    </div>
                   </div>
 
                   {/* Body */}

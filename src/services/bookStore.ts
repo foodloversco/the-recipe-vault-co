@@ -1,5 +1,6 @@
 import { Book, Bundle } from '../types';
 import { INITIAL_BOOKS, INITIAL_BUNDLES } from '../data/initialBooks';
+import { storageService } from './storageService';
 
 const BOOKS_STORAGE_KEY = 'the_recipe_vault_books_v1';
 const BUNDLES_STORAGE_KEY = 'the_recipe_vault_bundles_v1';
@@ -9,12 +10,13 @@ class BookStore {
   private books: Book[] = [];
   private bundles: Bundle[] = [];
   private unlockedItems: Set<string> = new Set();
+  private listeners: Set<() => void> = new Set();
 
   constructor() {
     this.init();
   }
 
-  private init() {
+  private async init() {
     try {
       const storedBooks = localStorage.getItem(BOOKS_STORAGE_KEY);
       if (storedBooks) {
@@ -41,6 +43,39 @@ class BookStore {
       this.books = [...INITIAL_BOOKS];
       this.bundles = [...INITIAL_BUNDLES];
     }
+
+    // Connect Cloudflare R2 to sync cloud books between Dev Mode and Live Mode
+    this.pullFromCloud();
+  }
+
+  public async pullFromCloud(): Promise<void> {
+    try {
+      const cloudBooks = await storageService.fetchBooksManifestFromCloud();
+      if (cloudBooks && Array.isArray(cloudBooks) && cloudBooks.length > 0) {
+        this.books = cloudBooks;
+        this.saveBooksToStorage();
+        this.notifyListeners();
+      }
+    } catch (err) {
+      console.warn('Could not sync books from cloud:', err);
+    }
+  }
+
+  public subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notifyListeners() {
+    this.listeners.forEach((listener) => {
+      try {
+        listener();
+      } catch (err) {
+        console.error('Error in bookStore listener:', err);
+      }
+    });
   }
 
   private saveBooksToStorage() {
@@ -79,11 +114,30 @@ class BookStore {
       this.books.unshift(book);
     }
     this.saveBooksToStorage();
+    this.notifyListeners();
+
+    // Sync to Cloudflare R2 cloud so live mode and dev mode always reflect the change
+    storageService.syncBooksManifestToCloud(this.books).catch(() => {});
   }
 
-  public deleteBook(id: string): void {
+  public async deleteBook(id: string): Promise<void> {
+    const bookToDelete = this.getBookById(id);
+    if (bookToDelete) {
+      // Remove PDF and Cover from Cloudflare R2
+      if (bookToDelete.pdfFileUrl) {
+        storageService.deleteFileFromCloud(bookToDelete.pdfFileUrl).catch(() => {});
+      }
+      if (bookToDelete.coverImage) {
+        storageService.deleteFileFromCloud(bookToDelete.coverImage).catch(() => {});
+      }
+    }
+
     this.books = this.books.filter((b) => b.id !== id);
     this.saveBooksToStorage();
+    this.notifyListeners();
+
+    // Sync deletion to Cloudflare R2 cloud manifest
+    storageService.syncBooksManifestToCloud(this.books).catch(() => {});
   }
 
   public getBundles(): Bundle[] {

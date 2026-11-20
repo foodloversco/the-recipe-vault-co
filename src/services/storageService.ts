@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface StorageConfig {
@@ -190,6 +190,134 @@ export class StorageService {
         console.warn('Device cache storage warning:', e);
       }
     }
+  }
+
+  /**
+   * Upload 9:16 compressed book cover image to Cloudflare R2
+   */
+  public async uploadImageFile(
+    file: File,
+    folder: string = 'covers'
+  ): Promise<{ url: string; name: string }> {
+    const cleanFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const objectKey = `${folder}/${cleanFileName}`;
+    const contentType = file.type || 'image/webp';
+
+    // 1. Cloudflare R2
+    if (this.s3Client && this.config.r2BucketName) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const command = new PutObjectCommand({
+          Bucket: this.config.r2BucketName,
+          Key: objectKey,
+          Body: new Uint8Array(arrayBuffer),
+          ContentType: contentType,
+        });
+
+        await this.s3Client.send(command);
+
+        const publicBase = this.config.r2PublicUrl
+          ? this.config.r2PublicUrl.replace(/\/$/, '')
+          : `https://${this.config.r2BucketName}.${this.config.r2AccountId}.r2.dev`;
+
+        const publicUrl = `${publicBase}/${objectKey}`;
+        return { url: publicUrl, name: file.name };
+      } catch (err) {
+        console.error('Cloudflare R2 image upload error, using local fallback:', err);
+      }
+    }
+
+    // Fallback: Local data URL
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ url: reader.result as string, name: file.name });
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Delete file from Cloudflare R2 storage
+   */
+  public async deleteFileFromCloud(fileUrlOrKey: string): Promise<boolean> {
+    if (!this.s3Client || !this.config.r2BucketName || !fileUrlOrKey) return false;
+
+    try {
+      let objectKey = fileUrlOrKey;
+      if (fileUrlOrKey.startsWith('http://') || fileUrlOrKey.startsWith('https://')) {
+        const urlObj = new URL(fileUrlOrKey);
+        objectKey = urlObj.pathname.replace(/^\/+/, '');
+      }
+
+      if (objectKey.startsWith('data:') || objectKey.startsWith('/assets/')) {
+        return false;
+      }
+
+      const command = new DeleteObjectCommand({
+        Bucket: this.config.r2BucketName,
+        Key: objectKey,
+      });
+
+      await this.s3Client.send(command);
+      console.info('[Storage] Successfully deleted object from Cloudflare R2:', objectKey);
+      return true;
+    } catch (err) {
+      console.warn('[Storage] Could not delete object from R2:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Sync full books catalog manifest (books.json) to Cloudflare R2 so dev mode and live mode always match!
+   */
+  public async syncBooksManifestToCloud(books: any[]): Promise<boolean> {
+    if (!this.s3Client || !this.config.r2BucketName) return false;
+
+    try {
+      const jsonContent = JSON.stringify(books, null, 2);
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(jsonContent);
+
+      const command = new PutObjectCommand({
+        Bucket: this.config.r2BucketName,
+        Key: 'books.json',
+        Body: bytes,
+        ContentType: 'application/json',
+        CacheControl: 'no-cache, no-store, must-revalidate',
+      });
+
+      await this.s3Client.send(command);
+      console.info('[Storage] Synced books manifest (books.json) to Cloudflare R2 cloud.');
+      return true;
+    } catch (err) {
+      console.warn('[Storage] Could not sync books.json to Cloudflare R2:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Fetch live cloud catalog manifest (books.json) from Cloudflare R2 public distribution
+   */
+  public async fetchBooksManifestFromCloud(): Promise<any[] | null> {
+    if (!this.config.r2PublicUrl) return null;
+
+    try {
+      const publicBase = this.config.r2PublicUrl.replace(/\/$/, '');
+      const response = await fetch(`${publicBase}/books.json?_t=${Date.now()}`, {
+        cache: 'no-store',
+      });
+
+      if (response.ok) {
+        const cloudBooks = await response.json();
+        if (Array.isArray(cloudBooks) && cloudBooks.length > 0) {
+          console.info(`[Storage] Loaded ${cloudBooks.length} books from Cloudflare R2 manifest.`);
+          return cloudBooks;
+        }
+      }
+    } catch (e) {
+      // Offline or manifest not yet created
+    }
+    return null;
   }
 
   public getConfig(): StorageConfig {

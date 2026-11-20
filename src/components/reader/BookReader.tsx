@@ -302,43 +302,60 @@ export const BookReader: React.FC<BookReaderProps> = ({
           ) : currentPage ? (
             /* Render Current Page Content */
             <div className={`h-full flex flex-col justify-between transition-transform duration-200 ${isFlipping === 'next' ? 'translate-x-1 opacity-90' : isFlipping === 'prev' ? '-translate-x-1 opacity-90' : ''}`}>
-              {/* Cover Page Special Display */}
+              {/* Cover Page (Page 1) - Full 9:16 Phone Cover Display */}
               {currentPage.isCover ? (
-                <div className="h-full flex flex-col justify-between text-center p-2">
-                  <div className="pt-2">
-                    <img 
-                      src="/assets/images/logo.png" 
-                      alt="Logo" 
-                      className="w-14 h-14 mx-auto mb-2 object-contain" 
-                    />
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-[#dea374]">
-                      THE RECIPE VAULT CO. PRESENTS
+                <div 
+                  className="h-full w-full relative flex flex-col justify-between overflow-hidden rounded-2xl group cursor-pointer select-none" 
+                  onClick={handleNextPage}
+                >
+                  {/* Full 9:16 Cover Image Background */}
+                  <img 
+                    src={currentPage.image || book.coverImage} 
+                    alt={book.title} 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                  />
+
+                  {/* Subtle Top & Bottom Cinematic Vignette */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none" />
+
+                  {/* Top Brand Header */}
+                  <div className="relative z-10 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src="/assets/images/logo.png" 
+                        alt="Logo" 
+                        className="w-8 h-8 rounded-full border border-[#dea374]/60 object-contain" 
+                      />
+                      <div>
+                        <span className="text-[9px] uppercase tracking-widest font-bold text-[#dea374] block">
+                          THE RECIPE VAULT CO.
+                        </span>
+                        <span className="text-[10px] text-white/90 font-serif">PAGE 1 • COVER</span>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/60 border border-white/20 text-[#dea374] font-semibold">
+                      9:16 COLLECTIBLE
                     </span>
-                    <h1 className="font-serif text-2xl font-bold text-white mt-1 leading-snug">
+                  </div>
+
+                  {/* Bottom Title & Tap to Flip Prompt */}
+                  <div className="relative z-10 p-5 pt-8 text-center">
+                    <h1 className="font-serif text-xl sm:text-2xl font-bold text-white leading-tight drop-shadow-md">
                       {book.title}
                     </h1>
-                    <p className="text-xs text-[#cf7b3e] mt-1 font-serif italic">
+                    <p className="text-xs text-[#dea374] mt-1 font-serif italic drop-shadow">
                       {currentPage.subtitle || book.subtitle}
                     </p>
-                  </div>
 
-                  <div className="my-3 rounded-2xl overflow-hidden border border-[#3a3229] shadow-xl max-h-[220px]">
-                    <img 
-                      src={currentPage.image || book.coverImage} 
-                      alt={currentPage.title} 
-                      className="w-full h-full object-cover" 
-                    />
-                  </div>
-
-                  <div className="space-y-2 pb-2">
-                    <p className="text-[11px] text-[#b8b0a5] leading-relaxed px-2">
-                      {currentPage.chefTip}
-                    </p>
                     <button
-                      onClick={handleNextPage}
-                      className="w-full py-2.5 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNextPage();
+                      }}
+                      className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs tracking-wider uppercase shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95"
                     >
-                      <span>Start Reading (Flip Page)</span>
+                      <span>Tap to Start Reading (Page 2)</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>

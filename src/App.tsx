@@ -36,8 +36,17 @@ export const App: React.FC = () => {
       setCurrentView('reader');
     }
 
+    // Subscribe to cloud sync updates
+    const unsubscribe = bookStore.subscribe(() => {
+      refreshData();
+    });
+
     // Hybrid Mode A + Mode B: sync live Vercel deploy if online in APK, else stay on offline bundle
     hybridSyncService.checkAndSyncLiveUpdate().catch(() => {});
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
