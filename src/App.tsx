@@ -13,7 +13,7 @@ import { PayPalCheckoutModal } from './components/checkout/PayPalCheckoutModal';
 import { MyVaultPage } from './components/library/MyVaultPage';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin' | 'paid' | 'favorites'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin' | 'paid' | 'favorites' | 'groceries'>('landing');
   const [activeBookSlug, setActiveBookSlug] = useState<string | null>(null);
   const [readerInitialPage, setReaderInitialPage] = useState<number | undefined>(undefined);
   const [books, setBooks] = useState<Book[]>([]);
@@ -31,10 +31,21 @@ export const App: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
+    // Check URL parameters for direct reset or relock: ?relock=1
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('relock') || urlParams.has('reset')) {
+      bookStore.resetPurchases();
+      const allBooks = bookStore.getBooks();
+      allBooks.forEach((b) => {
+        localStorage.removeItem(`rv_shared_bonus_${b.id}`);
+        localStorage.removeItem(`rv_shared_platform_${b.id}`);
+      });
+      console.log('Purchases and bonus keys reset for test mode.');
+    }
+
     refreshData();
 
-    // Check URL parameters for direct book links: ?book=slug or ?view=admin/paid/favorites
-    const urlParams = new URLSearchParams(window.location.search);
+    // Check URL parameters for direct book links: ?book=slug or ?view=admin/paid/favorites/groceries
     const bookParam = urlParams.get('book');
     const viewParam = urlParams.get('view');
 
@@ -44,6 +55,8 @@ export const App: React.FC = () => {
       setCurrentView('paid');
     } else if (viewParam === 'favorites') {
       setCurrentView('favorites');
+    } else if (viewParam === 'groceries') {
+      setCurrentView('groceries');
     } else if (bookParam) {
       setActiveBookSlug(bookParam);
       setCurrentView('reader');
@@ -181,10 +194,10 @@ export const App: React.FC = () => {
           />
         )}
 
-        {(currentView === 'paid' || currentView === 'favorites') && (
+        {(currentView === 'paid' || currentView === 'favorites' || currentView === 'groceries') && (
           <MyVaultPage
             key={currentView}
-            initialTab={currentView === 'favorites' ? 'favorites' : 'paid'}
+            initialTab={currentView === 'groceries' ? 'groceries' : currentView === 'favorites' ? 'favorites' : 'paid'}
             books={books}
             unlockedBookIds={unlockedSet}
             onOpenReader={handleOpenReader}

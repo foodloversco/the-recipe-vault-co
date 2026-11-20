@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Book, FavoriteRecipeItem } from '../../types';
 import { bookStore } from '../../services/bookStore';
 import { salesStore } from '../../services/salesStore';
+import { groceryStore, MASTER_BRAAI_GROCERY_CATEGORIES } from '../../services/groceryStore';
+import { GroceryChecklistModal } from '../grocery/GroceryChecklistModal';
 import {
   BookOpen,
   Heart,
@@ -16,11 +18,15 @@ import {
   CheckCircle2,
   ArrowLeft,
   Flame,
-  ShoppingBag
+  ShoppingBag,
+  Printer,
+  CheckSquare,
+  Square,
+  RotateCcw
 } from 'lucide-react';
 
 interface MyVaultPageProps {
-  initialTab?: 'paid' | 'favorites';
+  initialTab?: 'paid' | 'favorites' | 'groceries';
   books: Book[];
   unlockedBookIds: Set<string>;
   onOpenReader: (slug: string, initialPage?: number) => void;
@@ -38,10 +44,11 @@ export const MyVaultPage: React.FC<MyVaultPageProps> = ({
   onBackToCatalog,
   onRefresh,
 }) => {
-  const [activeTab, setActiveTab] = useState<'paid' | 'favorites'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'paid' | 'favorites' | 'groceries'>(initialTab);
   const [recoveryInput, setRecoveryInput] = useState('');
   const [selectedRecoverBookId, setSelectedRecoverBookId] = useState(books[0]?.id || '');
   const [recoveryMessage, setRecoveryMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [groceriesModalBook, setGroceriesModalBook] = useState<Book | null>(null);
 
   const paidBooks = books.filter((b) => unlockedBookIds.has(b.id));
   const favoriteBooks = bookStore.getFavoriteBooks();
@@ -150,6 +157,18 @@ export const MyVaultPage: React.FC<MyVaultPageProps> = ({
               <Heart className={`w-4 h-4 ${activeTab === 'favorites' ? 'fill-white' : 'text-rose-400'}`} />
               <span>Favorites &amp; Wishlist ({totalFavoritesCount})</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('groceries')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                activeTab === 'groceries'
+                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg'
+                  : 'text-[#b5aca0] hover:text-white'
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4 text-emerald-400" />
+              <span>Grocery Lists</span>
+            </button>
           </div>
         </div>
 
@@ -252,6 +271,15 @@ export const MyVaultPage: React.FC<MyVaultPageProps> = ({
                             <span>Download Printable PDF</span>
                           </a>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => setGroceriesModalBook(book)}
+                          className="w-full py-2.5 px-4 rounded-xl bg-[#1d1915] hover:bg-[#28211b] text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-all flex items-center justify-center gap-2"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5" />
+                          <span>In-Store Grocery Checklist &amp; Print</span>
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -261,11 +289,30 @@ export const MyVaultPage: React.FC<MyVaultPageProps> = ({
 
             {/* Unlock Token / Email Recovery Box */}
             <div className="bg-[#181614] border border-[#2d261f] rounded-3xl p-6 max-w-2xl mx-auto">
-              <div className="flex items-center gap-2.5 mb-2">
-                <KeyRound className="w-5 h-5 text-[#dea374]" />
-                <h3 className="font-serif font-bold text-base text-white">
-                  Already Paid? Restore Book with Unlock Token or Buyer Email
-                </h3>
+              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <KeyRound className="w-5 h-5 text-[#dea374]" />
+                  <h3 className="font-serif font-bold text-base text-white">
+                    Already Paid? Restore Book with Unlock Token or Buyer Email
+                  </h3>
+                </div>
+
+                {/* Developer / Tester Reset Link */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    bookStore.resetPurchases();
+                    books.forEach((b) => {
+                      localStorage.removeItem(`rv_shared_bonus_${b.id}`);
+                      localStorage.removeItem(`rv_shared_platform_${b.id}`);
+                    });
+                    onRefresh();
+                  }}
+                  className="text-[10px] text-[#7d756b] hover:text-rose-400 underline transition-colors"
+                  title="Reset purchases for testing"
+                >
+                  Reset Purchases (Test Flow)
+                </button>
               </div>
               <p className="text-xs text-[#9c9387] mb-4">
                 Enter the permanent unlock token (e.g. <span className="font-mono text-[#dea374]">RV-XXXXXX-1234</span>) or email address from your PayPal checkout receipt to unlock your paid book on this browser or phone.
@@ -542,7 +589,147 @@ export const MyVaultPage: React.FC<MyVaultPageProps> = ({
             )}
           </div>
         )}
+
+        {/* TAB 3: GROCERY SHOPPING LISTS */}
+        {activeTab === 'groceries' && (
+          <div className="mt-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2d251d] pb-4">
+              <div>
+                <span className="text-[11px] uppercase font-bold tracking-widest text-emerald-400">
+                  IN-STORE GROCERY CHECKLISTS
+                </span>
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-white">
+                  My Shopping Checklists
+                </h2>
+                <p className="text-xs text-[#a8a196] mt-0.5">
+                  Check off items as you walk through the aisles. Progress is automatically saved on this device.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 rounded-xl bg-[#28211b] hover:bg-[#382e25] text-[#dea374] border border-[#44382d] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5 text-[#dea374]" />
+                  <span>Print All Checklists</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Checklists for Published Books */}
+            {books.map((book) => {
+              const checkedMap = groceryStore.getCheckedMap(book.id);
+              const allItemIds: string[] = [];
+              MASTER_BRAAI_GROCERY_CATEGORIES.forEach((cat) => {
+                cat.items.forEach((item) => allItemIds.push(`${cat.category}::${item}`));
+              });
+              const checkedCount = allItemIds.filter((id) => checkedMap[id]).length;
+              const percent = Math.round((checkedCount / allItemIds.length) * 100);
+
+              return (
+                <div
+                  key={book.id}
+                  className="bg-[#181512] border border-[#332b22] rounded-3xl p-5 sm:p-6 shadow-xl space-y-5"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#2a231b]">
+                    <div>
+                      <span className="text-[10px] font-bold tracking-wider text-[#dea374] uppercase bg-[#241e17] px-2.5 py-0.5 rounded-full border border-[#cf7b3e]/30">
+                        {book.category}
+                      </span>
+                      <h3 className="font-serif text-lg font-bold text-white mt-1">
+                        {book.title}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-[#a39c91] mt-1">
+                        <span>Cart Progress:</span>
+                        <span className="text-emerald-400 font-bold">
+                          {checkedCount} / {allItemIds.length} items checked ({percent}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setGroceriesModalBook(book)}
+                        className="px-4 py-2 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition-all"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>Open Full In-Store Screen</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          groceryStore.clearAllChecked(book.id);
+                          onRefresh();
+                        }}
+                        className="p-2 rounded-xl text-[#888] hover:text-rose-400 bg-[#211b16] border border-[#30271e]"
+                        title="Reset checked items"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Categorized In-Aisle Checklist */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {MASTER_BRAAI_GROCERY_CATEGORIES.map((cat, catIdx) => (
+                      <div
+                        key={catIdx}
+                        className="bg-[#14110e] p-3.5 rounded-2xl border border-[#27211a]"
+                      >
+                        <h4 className="font-serif text-xs font-bold text-[#dea374] mb-2 uppercase tracking-wide">
+                          {cat.category}
+                        </h4>
+                        <div className="space-y-1.5">
+                          {cat.items.map((item, itemIdx) => {
+                            const itemKey = `${cat.category}::${item}`;
+                            const isChecked = !!checkedMap[itemKey];
+
+                            return (
+                              <div
+                                key={itemIdx}
+                                onClick={() => {
+                                  groceryStore.toggleItem(book.id, itemKey);
+                                  onRefresh();
+                                }}
+                                className={`p-2 rounded-lg border text-xs cursor-pointer select-none flex items-start gap-2 transition-all ${
+                                  isChecked
+                                    ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300/80 line-through'
+                                    : 'bg-[#1b1713] hover:bg-[#221d18] border-[#29221a] text-[#dbd5cb]'
+                                }`}
+                              >
+                                {isChecked ? (
+                                  <CheckSquare className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                                ) : (
+                                  <Square className="w-3.5 h-3.5 text-[#777] flex-shrink-0 mt-0.5" />
+                                )}
+                                <span>{item}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* Standalone In-Store Grocery Checklist Modal */}
+      {groceriesModalBook && (
+        <GroceryChecklistModal
+          book={groceriesModalBook}
+          isOpen={!!groceriesModalBook}
+          onClose={() => setGroceriesModalBook(null)}
+          onSaveToVaultSuccess={() => onRefresh()}
+        />
+      )}
     </div>
   );
 };

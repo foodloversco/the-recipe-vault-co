@@ -4,6 +4,8 @@ import { bookStore } from '../../services/bookStore';
 import { reviewStore } from '../../services/reviewStore';
 import { loadPdfDocument, renderSinglePdfPage } from '../../utils/pdfPageExtractor';
 import { BookReviewsModal } from '../reviews/BookReviewsModal';
+import { GroceryChecklistModal } from '../grocery/GroceryChecklistModal';
+import { getBookTableOfContents, ChapterTOCItem } from '../../data/tableOfContentsData';
 import {
   ChevronLeft,
   ChevronRight,
@@ -28,7 +30,9 @@ import {
   BookOpen,
   Star,
   Gift,
-  Sparkles
+  Sparkles,
+  ShoppingBag,
+  Search
 } from 'lucide-react';
 
 const WhatsAppIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
@@ -115,6 +119,19 @@ export const BookReader: React.FC<BookReaderProps> = ({
   const totalPages = pdfNumPages > 0 ? pdfNumPages : pages.length > 0 ? pages.length : 30;
 
   // Share to unlock next 4 bonus pages mechanism (Pages 1-5 free -> Share on P.6 -> Pages 6-9 unlocked -> Paywall on P.10)
+  const [showGroceryModal, setShowGroceryModal] = useState<boolean>(false);
+  const [tocActiveTab, setTocActiveTab] = useState<'chapters' | 'grid'>('chapters');
+  const [tocSearchQuery, setTocSearchQuery] = useState<string>('');
+  const bookTocItems = getBookTableOfContents(book.slug);
+
+  const handleJumpToPage = (targetIdx: number) => {
+    if (targetIdx < 0 || targetIdx >= totalPages) return;
+    const targetPageImg = getActivePageImage(targetIdx);
+    setTurningFromImage(targetPageImg);
+    setCurrentPageIndex(targetIdx);
+    setShowToc(false);
+    playPageFlipSound();
+  };
   const [hasSharedForBonus, setHasSharedForBonus] = useState<boolean>(() => {
     try {
       return localStorage.getItem(`rv_shared_bonus_${book.id}`) === 'true';
@@ -549,6 +566,15 @@ export const BookReader: React.FC<BookReaderProps> = ({
           </button>
 
           <button
+            onClick={() => setShowGroceryModal(true)}
+            title="In-Store Grocery Shopping Checklist & Print"
+            className="p-2 rounded-full bg-[#1c1a18] border border-[#302c27] text-emerald-400 hover:bg-emerald-950/60 hover:text-emerald-300 transition-all flex items-center gap-1"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span className="text-[10px] font-bold hidden md:inline">Grocery Checklist</span>
+          </button>
+
+          <button
             onClick={() => setShowToc(!showToc)}
             title="Jump to Page / Table of Contents"
             className="p-2 rounded-full bg-[#1c1a18] border border-[#302c27] text-[#cf7b3e] hover:bg-[#2b2722]"
@@ -703,6 +729,15 @@ export const BookReader: React.FC<BookReaderProps> = ({
               )}
 
               <div className="relative z-10 flex flex-col items-center max-w-xs">
+                {/* Clear Locked Status Badge */}
+                <div className="mb-2 bg-rose-950/80 border border-rose-500/60 px-3.5 py-1 rounded-full inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-300 shadow-xl">
+                  <Lock className="w-3.5 h-3.5 text-rose-400" />
+                  <span>
+                    Page {currentPageNumber} is Locked •{' '}
+                    {bookTocItems.find((t) => t.pageNumber === currentPageNumber)?.recipeTitle || 'Full Collection'}
+                  </span>
+                </div>
+
                 {!hasSharedForBonus ? (
                   /* Option A (Page 6 reached, initial 5 pages done): Share to unlock next 4 pages for FREE! */
                   <>
@@ -955,6 +990,28 @@ export const BookReader: React.FC<BookReaderProps> = ({
                 </div>
               )}
 
+              {/* In-Book Page 3 / TOC Quick Trigger */}
+              {(currentPageNumber === 2 || currentPageNumber === 3) && (
+                <button
+                  onClick={() => setShowToc(true)}
+                  className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-amber-400/40"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Click Table of Contents to Jump</span>
+                </button>
+              )}
+
+              {/* In-Book Grocery Checklist Quick Trigger */}
+              {(currentPageNumber === 2 || currentPageNumber === 36 || currentPage?.isChecklist) && (
+                <button
+                  onClick={() => setShowGroceryModal(true)}
+                  className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-emerald-400/40"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>Open In-Store Grocery Checklist &amp; Print</span>
+                </button>
+              )}
+
               {/* Bottom Corner Interactive Page-Curl Hint */}
               {currentPageIndex < totalPages - 1 && (
                 <button
@@ -1093,61 +1150,171 @@ export const BookReader: React.FC<BookReaderProps> = ({
         )}
       </div>
 
-      {/* Table of Contents / Page Jump Drawer Modal */}
+      {/* Interactive Table of Contents Modal */}
       {showToc && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
-          <div className="bg-[#1a1715] border border-[#362f28] rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-[#2b251f] flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex justify-center items-center p-3 sm:p-5">
+          <div className="bg-[#191613] border border-[#3b3228] rounded-3xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="p-4 sm:p-5 border-b border-[#2d251d] bg-[#1f1b16] flex items-center justify-between">
               <div>
-                <h3 className="font-serif font-bold text-white text-base">
-                  Jump to PDF Page ({totalPages} Pages)
+                <span className="text-[10px] uppercase font-bold tracking-widest text-[#dea374]">
+                  SERIES DIRECTORY &amp; JUMP
+                </span>
+                <h3 className="font-serif font-bold text-white text-base sm:text-lg leading-tight">
+                  Table of Contents ({totalPages} Pages)
                 </h3>
-                <p className="text-xs text-[#a8a196]">{book.title}</p>
               </div>
               <button
                 onClick={() => setShowToc(false)}
-                className="p-1 rounded-lg text-[#888] hover:text-white"
+                className="p-2 rounded-full text-[#999] hover:text-white bg-[#26201a] border border-[#382f25]"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 grid grid-cols-4 gap-2">
-              {Array.from({ length: totalPages }, (_, idx) => {
-                const isBonusUnlocked = !isUnlocked && hasSharedForBonus && idx >= 5 && idx < 9;
-                const isLocked = !isUnlocked && (hasSharedForBonus ? idx >= 9 : idx >= 5);
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setCurrentPageIndex(idx);
-                      setShowToc(false);
-                    }}
-                    className={`p-2.5 rounded-xl flex flex-col items-center justify-center border text-xs font-bold transition-all ${
-                      currentPageIndex === idx
-                        ? 'bg-[#cf7b3e] border-[#dea374] text-white'
-                        : isBonusUnlocked
-                        ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/60'
-                        : isLocked
-                        ? 'bg-[#141210] border-[#26201a] text-[#777] hover:border-amber-500/40'
-                        : 'bg-[#221d18] border-[#332b22] text-[#dea374] hover:bg-[#2d261f]'
-                    }`}
-                  >
-                    <span>P.{idx + 1}</span>
-                    {isLocked ? (
-                      <Lock className="w-3 h-3 text-amber-500 mt-0.5" />
-                    ) : (
-                      <span className="text-[9px] text-emerald-400 font-normal mt-0.5">
-                        {idx === 0 ? 'Cover' : isBonusUnlocked ? 'Bonus' : idx < 5 ? 'Free' : 'Open'}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            {/* Search & Tabs */}
+            <div className="p-3 bg-[#151210] border-b border-[#28211a] space-y-2">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#797165]" />
+                <input
+                  type="text"
+                  value={tocSearchQuery}
+                  onChange={(e) => setTocSearchQuery(e.target.value)}
+                  placeholder="Search recipe or chapter (e.g. Boerewors, Lamb, Potjie)..."
+                  className="w-full bg-[#1e1915] border border-[#362c22] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-[#70685e] focus:outline-none focus:border-[#cf7b3e]"
+                />
+              </div>
+
+              <div className="flex rounded-xl bg-[#1b1713] p-1 border border-[#2d251d]">
+                <button
+                  type="button"
+                  onClick={() => setTocActiveTab('chapters')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    tocActiveTab === 'chapters'
+                      ? 'bg-[#cf7b3e] text-white shadow-md'
+                      : 'text-[#9c9386] hover:text-white'
+                  }`}
+                >
+                  Chapters &amp; Recipes ({bookTocItems.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTocActiveTab('grid')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    tocActiveTab === 'grid'
+                      ? 'bg-[#cf7b3e] text-white shadow-md'
+                      : 'text-[#9c9386] hover:text-white'
+                  }`}
+                >
+                  All {totalPages} Pages Grid
+                </button>
+              </div>
             </div>
+
+            {/* Tab 1: Chapters & Recipes List */}
+            {tocActiveTab === 'chapters' ? (
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1.5 divide-y divide-[#241e18]">
+                {bookTocItems
+                  .filter(
+                    (item) =>
+                      item.recipeTitle.toLowerCase().includes(tocSearchQuery.toLowerCase()) ||
+                      item.chapterTitle.toLowerCase().includes(tocSearchQuery.toLowerCase())
+                  )
+                  .map((item, idx) => {
+                    const pageIdx = item.pageNumber - 1;
+                    const isBonus = !isUnlocked && hasSharedForBonus && pageIdx >= 5 && pageIdx < 9;
+                    const isLocked = !isUnlocked && (hasSharedForBonus ? pageIdx >= 9 : pageIdx >= 5);
+                    const isCurrent = currentPageIndex === pageIdx;
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => handleJumpToPage(pageIdx)}
+                        className={`pt-1.5 pb-1.5 px-3 rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+                          isCurrent
+                            ? 'bg-[#cf7b3e]/20 border border-[#cf7b3e]'
+                            : 'hover:bg-[#221c17]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <span className="text-base select-none">{item.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-[#8e8578] uppercase font-bold block truncate">
+                              {item.chapterTitle}
+                            </span>
+                            <span className="text-xs font-semibold text-[#f0ebe3] block truncate">
+                              {item.recipeTitle}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-[11px] font-mono text-[#c2bcaf]">
+                            P.{item.pageNumber}
+                          </span>
+                          {isLocked ? (
+                            <span className="text-[10px] bg-rose-950/80 border border-rose-500/50 text-rose-300 font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                              <Lock className="w-3 h-3 text-rose-400" />
+                              <span>Locked</span>
+                            </span>
+                          ) : isBonus ? (
+                            <span className="text-[10px] bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-amber-400" />
+                              <span>Bonus</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                              ✓ Free
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              /* Tab 2: All Pages Visual Grid */
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 grid grid-cols-4 sm:grid-cols-5 gap-2">
+                {Array.from({ length: totalPages }, (_, idx) => {
+                  const isBonus = !isUnlocked && hasSharedForBonus && idx >= 5 && idx < 9;
+                  const isLocked = !isUnlocked && (hasSharedForBonus ? idx >= 9 : idx >= 5);
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleJumpToPage(idx)}
+                      className={`p-2.5 rounded-xl flex flex-col items-center justify-center border text-xs font-bold transition-all ${
+                        currentPageIndex === idx
+                          ? 'bg-[#cf7b3e] border-[#dea374] text-white'
+                          : isBonus
+                          ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/60'
+                          : isLocked
+                          ? 'bg-[#141210] border-[#26201a] text-[#777] hover:border-amber-500/40'
+                          : 'bg-[#221d18] border-[#332b22] text-[#dea374] hover:bg-[#2d261f]'
+                      }`}
+                    >
+                      <span>P.{idx + 1}</span>
+                      {isLocked ? (
+                        <Lock className="w-3 h-3 text-amber-500 mt-0.5" />
+                      ) : (
+                        <span className="text-[9px] text-emerald-400 font-normal mt-0.5">
+                          {idx === 0 ? 'Cover' : isBonus ? 'Bonus' : idx < 5 ? 'Free' : 'Open'}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* In-Store Grocery Shopping Checklist & Print Modal */}
+      <GroceryChecklistModal
+        book={book}
+        isOpen={showGroceryModal}
+        onClose={() => setShowGroceryModal(false)}
+      />
 
       {/* Verified Reviews & 3rd Open Rating Pop-Up Modal */}
       {showReviewModal && (
