@@ -48,11 +48,38 @@ export const Footer: React.FC = () => {
           <p className="max-w-3xl mb-4 italic">
             "{APP_SUBHEADING}"
           </p>
+          {/* Legal, Support & Contact Navigation */}
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#b8b0a4] mb-4 pb-4 border-b border-[#1c1917]">
+            <div className="flex items-center gap-4 flex-wrap">
+              <a href="?view=contact" className="hover:text-white transition-colors flex items-center gap-1 font-semibold text-[#dea374]">
+                <span>Contact &amp; VIP Support</span>
+              </a>
+              <span className="text-[#444]">•</span>
+              <a href="https://api.whatsapp.com/send?phone=27843441313&text=Hi%20The%20Recipe%20Vault%20Support" target="_blank" rel="noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
+                <span>WhatsApp: +27 84 344 1313</span>
+              </a>
+              <span className="text-[#444]">•</span>
+              <a href="mailto:jraysoc05@gmail.com" className="hover:text-white transition-colors">
+                Email: jraysoc05@gmail.com
+              </a>
+            </div>
+
+            <div className="flex items-center gap-3 text-[11px] text-[#8e8578]">
+              <a href="?view=privacy" className="hover:text-[#dea374] transition-colors underline">
+                Privacy Policy
+              </a>
+              <span>•</span>
+              <a href="?view=terms" className="hover:text-[#dea374] transition-colors underline">
+                Terms &amp; Conditions
+              </a>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-[#635d55]">
             <p>
-              <a href="?view=admin" className="hover:text-[#cf7b3e] transition-colors" title="Vault Owner Access">©</a> {new Date().getFullYear()} The Recipe Vault Co. All rights reserved. Powered by Vercel &amp; Capacitor.
+              <a href="?view=admin" className="hover:text-[#cf7b3e] transition-colors" title="Vault Owner Access">©</a> {new Date().getFullYear()} The Recipe Vault Co. All rights reserved. Google Play Policy Compliant.
             </p>
-            <p>Designed for mobile phone culinary reading & offline kitchen access.</p>
+            <p>Designed for mobile phone culinary reading &amp; offline kitchen access.</p>
           </div>
         </div>
       </div>

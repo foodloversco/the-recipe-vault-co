@@ -6,6 +6,8 @@ import { storageService } from '../../services/storageService';
 import { settingsStore } from '../../services/settingsStore';
 import { hybridSyncService } from '../../services/hybridSyncService';
 import { promoStore } from '../../services/promoStore';
+import { groceryStore } from '../../services/groceryStore';
+import { RecipeGroceryList } from '../../data/recipeGroceryData';
 import { PromoCode } from '../../types';
 import { 
   UploadCloud, 
@@ -65,7 +67,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   });
   const [authErrorMsg, setAuthErrorMsg] = useState<string>('');
 
-  const [activeTab, setActiveTab] = useState<'upload' | 'sales' | 'promos' | 'bundles' | 'accounts'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'sales' | 'promos' | 'bundles' | 'accounts' | 'groceries'>('upload');
+  const [groceryJsonInput, setGroceryJsonInput] = useState<string>('');
+  const [groceryImportFeedback, setGroceryImportFeedback] = useState<{ text: string; isError: boolean } | null>(null);
+  const [adminRecipeLists, setAdminRecipeLists] = useState<RecipeGroceryList[]>(() => groceryStore.getRecipeGroceryLists());
   const [books, setBooks] = useState<Book[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [sales, setSales] = useState<SaleTransaction[]>([]);
@@ -676,6 +681,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
           >
             <Settings className="w-4 h-4" />
             <span>5. Accounts, Vercel &amp; Free Storage</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('groceries')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'groceries'
+                ? 'bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/20'
+                : 'bg-[#1a1715] text-[#b3aaa0] hover:text-white border border-[#2b251f]'
+            }`}
+          >
+            <FileText className="w-4 h-4 text-emerald-400" />
+            <span>6. Recipe Grocery Lists (JSON)</span>
           </button>
         </div>
 
@@ -1986,6 +2003,171 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                       Save Hybrid Sync Settings
                     </button>
                   </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: RECIPE GROCERY LISTS (JSON MANAGER) */}
+        {activeTab === 'groceries' && (
+          <div className="space-y-6">
+            <div className="bg-[#1a1715] border border-[#2b251f] rounded-3xl p-6 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#29221b]">
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                    RECIPE GROCERY LISTS &amp; JSON SCRIPT MANAGER
+                  </span>
+                  <h3 className="font-serif text-xl font-bold text-white mt-1">
+                    Manage Per-Recipe Shopping Lists
+                  </h3>
+                  <p className="text-xs text-[#a8a196] mt-0.5">
+                    Easily add, edit, or import custom grocery checklists per recipe using a clean JSON script.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(groceryStore.exportRecipeGroceryJson());
+                      const dlAnchor = document.createElement('a');
+                      dlAnchor.setAttribute('href', dataStr);
+                      dlAnchor.setAttribute('download', `Recipe_Grocery_Lists_${new Date().toISOString().slice(0, 10)}.json`);
+                      dlAnchor.click();
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-[#28211b] hover:bg-[#382d23] border border-[#44372a] text-xs font-bold text-[#dea374] flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download JSON Template</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Reset all recipe grocery lists back to factory defaults?')) {
+                        groceryStore.resetRecipeGroceryLists();
+                        setAdminRecipeLists(groceryStore.getRecipeGroceryLists());
+                        setGroceryImportFeedback({ text: 'Reset to default recipe grocery lists.', isError: false });
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl bg-[#201914] hover:bg-rose-950/50 border border-[#35271d] hover:border-rose-500/40 text-xs font-semibold text-[#8e8578] hover:text-rose-300 transition-all"
+                  >
+                    Reset Defaults
+                  </button>
+                </div>
+              </div>
+
+              {/* JSON Import Section */}
+              <div className="mt-5 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-bold text-[#dbd5ca] flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Paste Recipe Grocery Lists JSON Script:</span>
+                  </label>
+                  <span className="text-[11px] text-[#8e8578]">
+                    Format: Array of recipe objects with pageNumber, recipeTitle, chapter, servings, items[]
+                  </span>
+                </div>
+
+                <textarea
+                  rows={6}
+                  value={groceryJsonInput}
+                  onChange={(e) => setGroceryJsonInput(e.target.value)}
+                  placeholder={`[
+  {
+    "pageNumber": 6,
+    "recipeTitle": "Traditional Karoo Boerewors with Roasted Coriander",
+    "chapter": "Chapter 01: Braai Meat & Chops",
+    "category": "Meat & Chops",
+    "servings": "6-8 portions",
+    "items": [
+      "1.5kg Minced Beef & Pork Spek",
+      "2 tbsp Coriander Seeds",
+      "Worcestershire Sauce & Vinegar"
+    ]
+  }
+]`}
+                  className="w-full bg-[#120f0d] border border-[#3b3126] rounded-2xl p-3.5 font-mono text-xs text-white placeholder-[#5a5247] focus:outline-none focus:border-[#cf7b3e]"
+                />
+
+                <div className="flex items-center justify-between">
+                  {groceryImportFeedback ? (
+                    <span
+                      className={`text-xs font-semibold ${
+                        groceryImportFeedback.isError ? 'text-rose-400' : 'text-emerald-400'
+                      }`}
+                    >
+                      {groceryImportFeedback.text}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-[#7d756a]">
+                      Currently loaded: <strong>{adminRecipeLists.length} recipes</strong>
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!groceryJsonInput.trim()) {
+                        setGroceryImportFeedback({ text: 'Please paste JSON into the box first.', isError: true });
+                        return;
+                      }
+                      const res = groceryStore.importRecipeGroceryJson('vault-vol-01', groceryJsonInput);
+                      if (res.success) {
+                        setAdminRecipeLists(groceryStore.getRecipeGroceryLists());
+                        setGroceryJsonInput('');
+                        setGroceryImportFeedback({ text: `✓ Successfully imported ${res.count} recipe grocery lists!`, isError: false });
+                      } else {
+                        setGroceryImportFeedback({ text: `Error: ${res.error}`, isError: true });
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:brightness-110 text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>Validate &amp; Save JSON Script</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Current Loaded Recipes Grid */}
+              <div className="mt-8 space-y-3">
+                <h4 className="text-xs uppercase font-bold tracking-wider text-[#dea374]">
+                  Active Recipe Lists in Collection ({adminRecipeLists.length}):
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {adminRecipeLists.map((rec) => (
+                    <div
+                      key={rec.recipeId}
+                      className="bg-[#14110e] border border-[#2b231b] rounded-2xl p-3.5 space-y-2 hover:border-[#cf7b3e]/40 transition-colors"
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-[#8e8578]">
+                        <span className="text-amber-400 font-bold">Page {rec.pageNumber}</span>
+                        <span>{rec.servings}</span>
+                      </div>
+
+                      <h5 className="font-serif font-bold text-white text-xs leading-snug truncate">
+                        {rec.recipeTitle}
+                      </h5>
+
+                      <p className="text-[10px] text-[#a8a196] truncate">{rec.chapter}</p>
+
+                      <div className="bg-[#1d1712] p-2 rounded-xl border border-[#2b2118] space-y-1">
+                        <span className="text-[9px] uppercase font-bold text-[#dea374] block">
+                          Ingredients ({rec.items.length}):
+                        </span>
+                        <ul className="text-[10px] text-[#c4bcae] space-y-0.5 list-disc list-inside">
+                          {rec.items.slice(0, 3).map((it, idx) => (
+                            <li key={idx} className="truncate">{it}</li>
+                          ))}
+                          {rec.items.length > 3 && (
+                            <li className="text-[9px] text-[#8e8578] list-none">+{rec.items.length - 3} more items...</li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

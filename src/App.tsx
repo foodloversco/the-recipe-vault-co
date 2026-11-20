@@ -11,9 +11,15 @@ import { BookReader } from './components/reader/BookReader';
 import { AdminPortal } from './components/admin/AdminPortal';
 import { PayPalCheckoutModal } from './components/checkout/PayPalCheckoutModal';
 import { MyVaultPage } from './components/library/MyVaultPage';
+import { ContactSupportPage } from './components/support/ContactSupportPage';
+import { PrivacyPolicyModal } from './components/legal/PrivacyPolicyModal';
+import { TermsConditionsModal } from './components/legal/TermsConditionsModal';
+import { MessageCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin' | 'paid' | 'favorites' | 'groceries'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin' | 'paid' | 'favorites' | 'groceries' | 'contact'>('landing');
+  const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
+  const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
   const [activeBookSlug, setActiveBookSlug] = useState<string | null>(null);
   const [readerInitialPage, setReaderInitialPage] = useState<number | undefined>(undefined);
   const [books, setBooks] = useState<Book[]>([]);
@@ -59,6 +65,12 @@ export const App: React.FC = () => {
       setCurrentView('favorites');
     } else if (viewParam === 'groceries') {
       setCurrentView('groceries');
+    } else if (viewParam === 'contact') {
+      setCurrentView('contact');
+    } else if (viewParam === 'privacy') {
+      setShowPrivacyModal(true);
+    } else if (viewParam === 'terms') {
+      setShowTermsModal(true);
     } else if (bookParam) {
       setActiveBookSlug(bookParam);
       setCurrentView('reader');
@@ -145,6 +157,16 @@ export const App: React.FC = () => {
       url.searchParams.set('view', 'groceries');
       url.searchParams.delete('book');
       window.history.pushState({}, '', url.toString());
+    } else if (view === 'contact') {
+      setCurrentView('contact');
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'contact');
+      url.searchParams.delete('book');
+      window.history.pushState({}, '', url.toString());
+    } else if (view === 'privacy') {
+      setShowPrivacyModal(true);
+    } else if (view === 'terms') {
+      setShowTermsModal(true);
     } else if (view === 'reader' && slug) {
       handleOpenReader(slug);
     } else {
@@ -202,6 +224,12 @@ export const App: React.FC = () => {
           />
         )}
 
+        {currentView === 'contact' && (
+          <ContactSupportPage
+            onBackToCatalog={() => handleNavigate('landing')}
+          />
+        )}
+
         {(currentView === 'paid' || currentView === 'favorites' || currentView === 'groceries') && (
           <MyVaultPage
             key={currentView}
@@ -237,9 +265,25 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Footer on landing, paid, and favorites */}
-      {(currentView === 'landing' || currentView === 'paid' || currentView === 'favorites') && (
+      {/* Footer on landing, paid, favorites, and contact */}
+      {(currentView === 'landing' || currentView === 'paid' || currentView === 'favorites' || currentView === 'contact') && (
         <Footer />
+      )}
+
+      {/* Floating WhatsApp VIP Support Button (visible for buyers & users across main views) */}
+      {currentView !== 'admin' && (
+        <a
+          href="https://api.whatsapp.com/send?phone=27843441313&text=Hi%20The%20Recipe%20Vault%20Co%20Support%2C%20I%20have%20a%20question%20or%20need%20help"
+          target="_blank"
+          rel="noreferrer"
+          title="Direct WhatsApp Support (+27 84 344 1313)"
+          className="fixed bottom-4 right-4 z-40 bg-[#25D366] hover:bg-[#20ba59] text-white p-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/20 transition-all hover:scale-105 active:scale-95 group"
+        >
+          <MessageCircle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-xs font-bold hidden sm:inline group-hover:inline max-w-0 sm:max-w-xs group-hover:max-w-xs overflow-hidden transition-all duration-300">
+            WhatsApp VIP Support
+          </span>
+        </a>
       )}
 
       {/* Checkout Modal */}
@@ -251,6 +295,17 @@ export const App: React.FC = () => {
           onSuccess={handleCheckoutSuccess}
         />
       )}
+
+      {/* Google Play Compliant Legal Modals */}
+      <PrivacyPolicyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
+
+      <TermsConditionsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
     </div>
   );
 };

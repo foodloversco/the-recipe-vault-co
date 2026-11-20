@@ -6,6 +6,7 @@ import { bookStore } from '../../services/bookStore';
 import { settingsStore } from '../../services/settingsStore';
 import { promoStore } from '../../services/promoStore';
 import { PromoCode } from '../../types';
+import { currencyStore } from '../../services/currencyStore';
 import { 
   X, 
   ShieldCheck, 
@@ -17,7 +18,9 @@ import {
   BookOpen, 
   FileCheck,
   Tag,
-  Check
+  Check,
+  MessageCircle,
+  Smartphone
 } from 'lucide-react';
 
 interface CheckoutItem {
@@ -42,7 +45,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [paymentCurrency, setPaymentCurrency] = useState<'USD' | 'ZAR'>('USD');
+  const [paymentCurrency, setPaymentCurrency] = useState<'USD' | 'ZAR'>(() => currencyStore.getCurrency());
   const [buyerEmail, setBuyerEmail] = useState<string>('');
   const [buyerName, setBuyerName] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -53,6 +56,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [promoFeedback, setPromoFeedback] = useState<{ text: string; isError: boolean } | null>(null);
   const [showPromoField, setShowPromoField] = useState<boolean>(false);
+  const [paymentRefCode] = useState<string>(() => `RV-${Math.random().toString(36).substring(2, 6).toUpperCase()}`);
 
   if (!isOpen) return null;
 
@@ -390,8 +394,50 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
               {/* Payment Actions based on Selected Currency & Region */}
               <div className="pt-2">
                 {paymentCurrency === 'ZAR' ? (
-                  /* South African Domestic Card / Instant EFT Checkout */
-                  <form onSubmit={handleInstantSimulatedCheckout} className="space-y-2.5">
+                  /* South African Domestic Capitec Pay, Instant EFT & Card Checkout */
+                  <form onSubmit={handleInstantSimulatedCheckout} className="space-y-3">
+                    {/* Capitec Bank & Cellphone Banking Box */}
+                    <div className="bg-[#151210] p-3 rounded-2xl border border-emerald-500/40 text-left space-y-1.5 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 flex items-center gap-1">
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>Capitec Bank / Cellphone Payment</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-300 font-bold bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                          R20.00 Fixed
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                        <div className="bg-[#1f1914] p-2 rounded-xl border border-[#30271e]">
+                          <span className="text-[10px] text-[#8e8578] block">Bank Name</span>
+                          <strong className="text-white text-xs">Capitec Bank</strong>
+                        </div>
+                        <div className="bg-[#1f1914] p-2 rounded-xl border border-[#30271e]">
+                          <span className="text-[10px] text-[#8e8578] block">Cellphone / Capitec Pay</span>
+                          <strong className="text-emerald-300 text-xs font-mono">084 344 1313</strong>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#1f1914] p-2 rounded-xl border border-[#30271e] flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-[#8e8578] block">Your Payment Reference</span>
+                          <span className="text-amber-300 font-mono font-bold text-xs">{paymentRefCode}</span>
+                        </div>
+                        <a
+                          href={`https://api.whatsapp.com/send?phone=27843441313&text=${encodeURIComponent(
+                            `Hi Recipe Vault! I have transferred R20 on Capitec for ${item.title}. My reference is ${paymentRefCode} and email is ${buyerEmail || '[my email]'}.`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all"
+                        >
+                          <MessageCircle className="w-3 h-3" />
+                          <span>WhatsApp Proof</span>
+                        </a>
+                      </div>
+                    </div>
+
                     <button
                       type="submit"
                       disabled={isProcessing}
@@ -399,16 +445,13 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                     >
                       <CreditCard className="w-4 h-4 text-emerald-200" />
                       <span>
-                        {isProcessing ? 'Verifying Card / Instant EFT...' : `Pay R${effectivePriceZAR}.00 (Card / Instant EFT)`}
+                        {isProcessing ? 'Verifying & Unlocking...' : `Verify & Unlock Collection (R${effectivePriceZAR}.00)`}
                       </span>
                     </button>
 
-                    <div className="bg-[#151210] p-2 rounded-xl border border-[#2b241c] text-center text-[10px] text-[#b3aaa0] space-y-0.5">
-                      <p className="font-semibold text-emerald-300">
-                        ✓ Instant Delivery to Your Vault
-                      </p>
-                      <p className="text-[#888]">
-                        Supports Capitec, FNB, Standard Bank, Nedbank, Absa &amp; SA Cards.
+                    <div className="text-center text-[10px] text-[#888] space-y-0.5">
+                      <p className="text-[#a39c90]">
+                        Instant token receipt sent to {buyerEmail || 'your email'} upon unlock.
                       </p>
                     </div>
                   </form>

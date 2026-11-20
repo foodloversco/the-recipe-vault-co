@@ -890,7 +890,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       className="w-full py-2 px-3 rounded-xl font-bold text-xs bg-[#241d17] hover:bg-[#30271f] text-[#dea374] border border-[#3f3428] transition-all flex items-center justify-center gap-1.5 mb-1"
                     >
                       <CreditCard className="w-3.5 h-3.5" />
-                      <span>Buy Full Book &amp; PDF ($1.00 USD / R20 ZAR)</span>
+                      <span>Buy Full Book &amp; PDF (${book.price.toFixed(2)})</span>
                     </button>
                   </>
                 ) : (
@@ -921,7 +921,6 @@ export const BookReader: React.FC<BookReaderProps> = ({
                           </span>
                         )}
                         <span className="text-[10px] text-[#dea374] font-medium">USD</span>
-                        <span className="text-xs text-[#8e8578] font-bold">• R{book.priceZAR ?? 20} ZAR</span>
                       </div>
                       <p className="text-[9px] text-[#9c9388] mt-0.5">
                         One-time purchase • Instant Full Book &amp; PDF Download
@@ -941,7 +940,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-2"
                     >
                       <CreditCard className="w-4 h-4" />
-                      <span>Buy &amp; Unlock Full Book ($1 USD / R20 ZAR)</span>
+                      <span>Buy &amp; Unlock Full Book (${book.price.toFixed(2)})</span>
                     </button>
                   </>
                 )}
@@ -1027,14 +1026,18 @@ export const BookReader: React.FC<BookReaderProps> = ({
                 </button>
               )}
 
-              {/* In-Book Grocery Checklist Quick Trigger */}
-              {(currentPageNumber === 2 || currentPageNumber === 36 || currentPage?.isChecklist) && (
+              {/* In-Book Grocery Checklist Quick Trigger on recipe pages */}
+              {currentPageNumber >= 2 && currentPageNumber <= 36 && (
                 <button
                   onClick={() => setShowGroceryModal(true)}
-                  className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-emerald-400/40"
+                  className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-emerald-400/40 transition-transform active:scale-95"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Open In-Store Grocery Checklist &amp; Print</span>
+                  <span>
+                    {currentPageNumber >= 6 && currentPageNumber <= 35
+                      ? `🛒 Recipe Grocery Checklist (P.${currentPageNumber})`
+                      : '🛒 In-Store Grocery Checklist & Print'}
+                  </span>
                 </button>
               )}
 
@@ -1340,6 +1343,8 @@ export const BookReader: React.FC<BookReaderProps> = ({
         book={book}
         isOpen={showGroceryModal}
         onClose={() => setShowGroceryModal(false)}
+        initialRecipePage={currentPageNumber}
+        onJumpToPage={(p) => setCurrentPageIndex(Math.max(0, Math.min(totalPages - 1, p - 1)))}
       />
 
       {/* Verified Reviews & 3rd Open Rating Pop-Up Modal */}

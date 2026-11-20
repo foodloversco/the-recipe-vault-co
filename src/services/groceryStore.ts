@@ -1,4 +1,5 @@
 import { Book } from '../types';
+import { INITIAL_RECIPE_GROCERY_DATA, RecipeGroceryList } from '../data/recipeGroceryData';
 
 export interface GroceryItem {
   id: string;
@@ -22,6 +23,8 @@ export interface SavedGroceryList {
 
 const CHECKED_STORAGE_PREFIX = 'rv_grocery_checked_';
 const SAVED_LISTS_STORAGE_KEY = 'rv_saved_grocery_lists';
+const RECIPE_LISTS_PREFIX = 'rv_recipe_grocery_';
+const RECIPE_CHECKED_PREFIX = 'rv_recipe_item_checked_';
 
 export const MASTER_BRAAI_GROCERY_CATEGORIES: { category: string; items: string[] }[] = [
   {
@@ -197,6 +200,99 @@ class GroceryStore {
 
   public printList(bookTitle: string): void {
     window.print();
+  }
+
+  // --- Per-Recipe Grocery Checklists System (JSON Configurable & Admin Managed) ---
+
+  public getRecipeGroceryLists(bookId = 'vault-vol-01'): RecipeGroceryList[] {
+    try {
+      const stored = localStorage.getItem(`${RECIPE_LISTS_PREFIX}${bookId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_RECIPE_GROCERY_DATA;
+  }
+
+  public getRecipeGroceryByPage(pageNumber: number, bookId = 'vault-vol-01'): RecipeGroceryList | undefined {
+    const lists = this.getRecipeGroceryLists(bookId);
+    return lists.find((r) => r.pageNumber === pageNumber);
+  }
+
+  public getRecipeGroceryById(recipeId: string, bookId = 'vault-vol-01'): RecipeGroceryList | undefined {
+    const lists = this.getRecipeGroceryLists(bookId);
+    return lists.find((r) => r.recipeId === recipeId);
+  }
+
+  public saveRecipeGroceryLists(bookId: string, lists: RecipeGroceryList[]): void {
+    try {
+      localStorage.setItem(`${RECIPE_LISTS_PREFIX}${bookId}`, JSON.stringify(lists));
+    } catch (e) {
+      console.warn('Could not save recipe grocery lists:', e);
+    }
+    this.notify();
+  }
+
+  public importRecipeGroceryJson(bookId: string, jsonStr: string): { success: boolean; count: number; error?: string } {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (!Array.isArray(parsed)) {
+        return { success: false, count: 0, error: 'JSON must be an array of recipe grocery objects.' };
+      }
+      if (parsed.length === 0) {
+        return { success: false, count: 0, error: 'Array cannot be empty.' };
+      }
+      // Basic schema validation
+      for (const item of parsed) {
+        if (!item.recipeTitle || !Array.isArray(item.items)) {
+          return { success: false, count: 0, error: `Invalid item format in "${item.recipeTitle || 'unknown'}"` };
+        }
+      }
+      this.saveRecipeGroceryLists(bookId, parsed);
+      return { success: true, count: parsed.length };
+    } catch (err: any) {
+      return { success: false, count: 0, error: err.message || 'Invalid JSON format' };
+    }
+  }
+
+  public exportRecipeGroceryJson(bookId = 'vault-vol-01'): string {
+    const lists = this.getRecipeGroceryLists(bookId);
+    return JSON.stringify(lists, null, 2);
+  }
+
+  public resetRecipeGroceryLists(bookId = 'vault-vol-01'): void {
+    try {
+      localStorage.removeItem(`${RECIPE_LISTS_PREFIX}${bookId}`);
+    } catch {}
+    this.notify();
+  }
+
+  // Per-recipe checked items state
+  public getRecipeCheckedMap(bookId: string, recipeId: string): Record<number, boolean> {
+    try {
+      const stored = localStorage.getItem(`${RECIPE_CHECKED_PREFIX}${bookId}_${recipeId}`);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {};
+  }
+
+  public toggleRecipeItem(bookId: string, recipeId: string, itemIdx: number): boolean {
+    const map = this.getRecipeCheckedMap(bookId, recipeId);
+    const nextStatus = !map[itemIdx];
+    map[itemIdx] = nextStatus;
+    try {
+      localStorage.setItem(`${RECIPE_CHECKED_PREFIX}${bookId}_${recipeId}`, JSON.stringify(map));
+    } catch {}
+    this.notify();
+    return nextStatus;
+  }
+
+  public clearRecipeChecked(bookId: string, recipeId: string): void {
+    try {
+      localStorage.removeItem(`${RECIPE_CHECKED_PREFIX}${bookId}_${recipeId}`);
+    } catch {}
+    this.notify();
   }
 }
 

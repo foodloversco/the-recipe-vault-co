@@ -22,7 +22,6 @@ Inside Series 1 (Chapters 01–08):
 Tap below to unlock all 30 recipes + grocery lists instantly for $1!`,
     coverImage: '/assets/images/south-africa-braai-cover.jpg',
     price: 1.00,
-    priceZAR: 20,
     originalPrice: 12.99,
     soldCount: 0,
     likesCount: 191,

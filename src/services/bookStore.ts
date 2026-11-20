@@ -43,7 +43,6 @@ class BookStore {
               return {
                 ...b,
                 title: 'South African Braai & Heritage Series 1',
-                priceZAR: 20,
                 coverImage:
                   b.coverImage && b.coverImage !== '/assets/images/recipe-card-sample.png'
                     ? b.coverImage

@@ -658,7 +658,7 @@ export const MyVaultPage: React.FC<MyVaultPageProps> = ({
                         className="px-4 py-2 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition-all"
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
-                        <span>Open Full In-Store Screen</span>
+                        <span>Open Per-Recipe &amp; Master Checklists</span>
                       </button>
 
                       <button

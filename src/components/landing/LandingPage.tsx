@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Book, Bundle } from '../../types';
 import { APP_SUBHEADING } from '../../data/initialBooks';
 import { promoStore } from '../../services/promoStore';
 import { bookStore } from '../../services/bookStore';
 import { reviewStore } from '../../services/reviewStore';
+import { currencyStore, CurrencyCode } from '../../services/currencyStore';
 import { BookReviewsModal } from '../reviews/BookReviewsModal';
 import { 
   BookOpen, 
@@ -48,6 +49,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [, setFavTick] = useState(0);
   const [reviewModalBook, setReviewModalBook] = useState<Book | null>(null);
   const [isChaptersExpanded, setIsChaptersExpanded] = useState<boolean>(false);
+  const [currency, setCurrency] = useState<CurrencyCode>(currencyStore.getCurrency());
+
+  useEffect(() => {
+    return currencyStore.subscribe((cur) => {
+      setCurrency(cur);
+    });
+  }, []);
 
   const featuredBook = books.find((b) => b.isFeatured) || books[0];
   const primaryBundle = bundles[0];
@@ -191,7 +199,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         bookStore.isBookFavorited(featuredBook.id) ? 'fill-white text-white' : 'text-rose-400'
                       }`}
                     />
-                    <span>{bookStore.isBookFavorited(featuredBook.id) ? 'In Favorites / Wishlist' : 'Like / Wishlist'}</span>
+                    <span>{bookStore.isBookFavorited(featuredBook.id) ? 'Liked' : 'Like'}</span>
+                    <span className="text-xs font-bold text-white/90 ml-0.5">
+                      {featuredBook.likesCount ?? 191}
+                    </span>
                   </button>
 
                   {/* Unique URL Link Share Button */}
@@ -352,14 +363,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-extrabold text-white">
-                      ${featuredBook.price.toFixed(2)}
+                      {currency === 'ZAR' ? 'R20.00' : `$${featuredBook.price.toFixed(2)}`}
                     </span>
                     {featuredBook.originalPrice && (
                       <span className="text-base line-through text-[#8e8578] font-semibold">
-                        ${featuredBook.originalPrice.toFixed(2)}
+                        {currency === 'ZAR' ? 'R260.00' : `$${featuredBook.originalPrice.toFixed(2)}`}
                       </span>
                     )}
-                    <span className="text-xs font-semibold text-[#dea374]">USD</span>
+                    <span className="text-xs font-semibold text-[#dea374]">
+                      {currency === 'ZAR' ? 'ZAR (Capitec / Card)' : 'USD (PayPal)'}
+                    </span>
                     {featuredBook.originalPrice && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/40">
                         {featuredBook.promoExpiresAt !== undefined ? promoStore.getDaysRemaining(featuredBook.promoExpiresAt) : 'LIMITED PROMO'}
@@ -367,7 +380,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     )}
                   </div>
                   <div className="text-[10px] text-[#857d72] flex items-center gap-1.5">
-                    <span>One-time charge • $1.00 USD or R20 ZAR</span>
+                    <span>
+                      {currency === 'ZAR'
+                        ? 'One-time charge • R20.00 ZAR via Capitec / Card'
+                        : 'One-time charge • $1.00 USD via PayPal'}
+                    </span>
                   </div>
                 </div>
 
@@ -395,7 +412,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-[#cf7b3e]/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                       <CreditCard className="w-4 h-4" />
-                      <span>Buy ($1 USD / R20 ZAR)</span>
+                      <span>
+                        {currency === 'ZAR'
+                          ? 'Buy with Capitec / Card (R20)'
+                          : `Pay with PayPal ($${featuredBook.price.toFixed(2)})`}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -595,15 +616,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="flex items-baseline justify-between py-1.5 sm:py-2">
                     <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
                       <span className="text-base sm:text-lg font-extrabold text-white">
-                        ${book.price.toFixed(2)}
+                        {currency === 'ZAR' ? 'R20.00' : `$${book.price.toFixed(2)}`}
                       </span>
                       {book.originalPrice && (
                         <span className="text-[10px] sm:text-xs line-through text-[#8e8578] font-semibold">
-                          ${book.originalPrice.toFixed(2)}
+                          {currency === 'ZAR' ? 'R260.00' : `$${book.originalPrice.toFixed(2)}`}
                         </span>
                       )}
-                      <span className="text-[9px] sm:text-[10px] text-[#dea374] font-semibold">USD</span>
-                      <span className="text-[9px] sm:text-[10px] text-[#8e8578] font-medium">• R{book.priceZAR ?? 20}</span>
+                      <span className="text-[9px] sm:text-[10px] text-[#dea374] font-semibold">
+                        {currency}
+                      </span>
                       {book.originalPrice && (
                         <span className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30">
                           {book.promoExpiresAt !== undefined ? promoStore.getDaysRemaining(book.promoExpiresAt) : 'SALE'}
@@ -648,7 +670,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       className="py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-[10px] sm:text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1 truncate"
                     >
                       <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                      <span className="truncate">Buy ($1 / R20)</span>
+                      <span className="truncate">{currency === 'ZAR' ? 'Buy (R20)' : 'Buy ($1)'}</span>
                     </button>
                   </div>
                 </div>

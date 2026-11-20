@@ -1,5 +1,6 @@
-import React from 'react';
-import { ShieldCheck, SlidersHorizontal, Heart, BookOpen, ShoppingBag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, SlidersHorizontal, Heart, BookOpen, ShoppingBag, Globe } from 'lucide-react';
+import { currencyStore, CurrencyCode } from '../../services/currencyStore';
 
 interface HeaderProps {
   currentView: string;
@@ -14,6 +15,13 @@ export const Header: React.FC<HeaderProps> = ({
   unlockedCount,
   favoritesCount,
 }) => {
+  const [currency, setCurrency] = useState<CurrencyCode>(currencyStore.getCurrency());
+
+  useEffect(() => {
+    return currencyStore.subscribe((cur) => {
+      setCurrency(cur);
+    });
+  }, []);
   return (
     <header className="sticky top-0 z-40 bg-[#121110]/95 backdrop-blur-md border-b border-[#2a2724] px-4 py-3 sm:px-6">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
@@ -47,6 +55,37 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Navigation Actions */}
         <nav className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-end">
+          {/* Country / Currency Flag Switcher (USA $1.00 USD vs South Africa R20 ZAR) */}
+          <div className="flex items-center bg-[#171513] border border-[#302b25] rounded-full p-0.5 shadow-inner mr-0.5">
+            <button
+              type="button"
+              onClick={() => currencyStore.setCurrency('USD')}
+              title="USA & International: Pay with PayPal in USD ($1.00)"
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                currency === 'USD'
+                  ? 'bg-[#cf7b3e] text-white shadow-md'
+                  : 'text-[#9c9388] hover:text-white'
+              }`}
+            >
+              <span className="text-sm leading-none">🇺🇸</span>
+              <span className="text-[10px] sm:text-[11px] leading-none">$1</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => currencyStore.setCurrency('ZAR')}
+              title="South Africa: Pay with Capitec / Card in ZAR (R20)"
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                currency === 'ZAR'
+                  ? 'bg-emerald-700 text-white shadow-md'
+                  : 'text-[#9c9388] hover:text-white'
+              }`}
+            >
+              <span className="text-sm leading-none">🇿🇦</span>
+              <span className="text-[10px] sm:text-[11px] leading-none">R20</span>
+            </button>
+          </div>
+
           <button
             onClick={() => onNavigate('landing')}
             className={`px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-all ${
