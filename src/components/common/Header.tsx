@@ -40,27 +40,27 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#121110]/95 backdrop-blur-md border-b border-[#2a2724] px-3 sm:px-6 py-2.5 sm:py-3 transition-all">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 bg-[#121110]/95 backdrop-blur-md border-b border-[#2a2724] px-2.5 sm:px-6 py-2 sm:py-3 transition-all">
+      <div className="max-w-6xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
         {/* Brand Logo & Name */}
         <div
           onClick={() => handleNavClick('landing')}
-          className="flex items-center gap-2 sm:gap-3 cursor-pointer group flex-shrink-0"
+          className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group min-w-0"
         >
           <img
             src="/assets/images/logo.png"
             alt="The Recipe Vault Co."
-            className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-lg border border-[#cf7b3e]/30 shadow-md group-hover:border-[#cf7b3e] transition-all"
+            className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-lg border border-[#cf7b3e]/30 shadow-md group-hover:border-[#cf7b3e] transition-all flex-shrink-0"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-serif tracking-wider text-sm sm:text-lg md:text-xl font-bold text-white group-hover:text-[#dea374] transition-colors leading-tight">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1">
+              <span className="font-serif tracking-wider text-xs sm:text-base md:text-xl font-bold text-white group-hover:text-[#dea374] transition-colors leading-tight truncate">
                 The Recipe Vault Co.
               </span>
-              <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-[#cf7b3e]/20 text-[#dea374] border border-[#cf7b3e]/30">
+              <span className="text-[8px] sm:text-[10px] uppercase font-bold tracking-widest px-1 py-0.5 rounded bg-[#cf7b3e]/20 text-[#dea374] border border-[#cf7b3e]/30 flex-shrink-0">
                 PRO
               </span>
             </div>
@@ -70,29 +70,38 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Currency Switcher & Desktop Navigation */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
+        {/* Currency Switcher & Navigation */}
+        <div className="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
           {/* Country / Currency Flag Switcher (Always visible on mobile & desktop) */}
           <div className="flex items-center bg-[#171513] border border-[#302b25] rounded-full p-0.5 shadow-inner">
             <button
               type="button"
               onClick={() => currencyStore.setCurrency('USD')}
               title="USA & International: Pay with PayPal in USD ($1.00)"
-              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all ${
+              className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold transition-all ${
                 currency === 'USD'
                   ? 'bg-[#cf7b3e] text-white shadow-md'
                   : 'text-[#9c9388] hover:text-white'
               }`}
             >
               <span className="text-xs sm:text-sm leading-none">🇺🇸</span>
-              <span className="text-[10px] sm:text-[11px] leading-none">$1</span>
+              <span className="text-[9px] sm:text-[11px] leading-none">$1</span>
             </button>
 
             <button
               type="button"
               onClick={() => currencyStore.setCurrency('ZAR')}
               title="South Africa: Pay with Capitec / Card in ZAR (R20)"
-              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all ${
+              className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold transition-all ${
+                currency === 'ZAR'
+                  ? 'bg-emerald-700 text-white shadow-md'
+                  : 'text-[#9c9388] hover:text-white'
+              }`}
+            >
+              <span className="text-xs sm:text-sm leading-none">🇿🇦</span>
+              <span className="text-[9px] sm:text-[11px] leading-none">R20</span>
+            </button>
+          </div>
                 currency === 'ZAR'
                   ? 'bg-emerald-700 text-white shadow-md'
                   : 'text-[#9c9388] hover:text-white'
