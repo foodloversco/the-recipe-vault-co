@@ -26,3 +26,5 @@ dist-ssr
 # Capacitor native folders that can be regenerated
 # android/app/build
 
+
+.vercel
