@@ -26,7 +26,9 @@ import {
   Download,
   Loader2,
   BookOpen,
-  Star
+  Star,
+  Gift,
+  Sparkles
 } from 'lucide-react';
 
 interface BookReaderProps {
@@ -87,11 +89,25 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
   const pages = book.pages || [];
   const totalPages = pdfNumPages > 0 ? pdfNumPages : pages.length > 0 ? pages.length : 30;
-  const previewLimit = book.previewPagesAllowed || 5;
+
+  // Share to unlock next 4 bonus pages mechanism (Pages 1-5 free -> Share on P.6 -> Pages 6-9 unlocked -> Paywall on P.10)
+  const [hasSharedForBonus, setHasSharedForBonus] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(`rv_shared_bonus_${book.id}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [bonusShareSuccess, setBonusShareSuccess] = useState<string | null>(null);
+
+  const basePreviewLimit = book.previewPagesAllowed || 5; // 5 pages free initially
+  const bonusPagesCount = hasSharedForBonus ? 4 : 0; // +4 pages if shared
+  const effectivePreviewLimit = basePreviewLimit + bonusPagesCount; // 5 if unshared, 9 if shared!
 
   const currentPageNumber = currentPageIndex + 1;
   const currentPage: RecipePage | undefined = pages[currentPageIndex];
-  const isPageLocked = !isUnlocked && currentPageIndex >= previewLimit;
+  const isPageLocked = !isUnlocked && currentPageIndex >= effectivePreviewLimit;
+  const isCurrentPageBonus = !isUnlocked && hasSharedForBonus && currentPageIndex >= basePreviewLimit && currentPageIndex < effectivePreviewLimit;
 
   // Synthesize a subtle, realistic paper page-flip rustle sound via Web Audio API
   const playPageFlipSound = () => {
@@ -299,6 +315,44 @@ export const BookReader: React.FC<BookReaderProps> = ({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
+  // Viral Feature: Share on Page 6 to unlock the next 4 pages (Pages 6, 7, 8 & 9)
+  const handleShareToUnlockBonus = async () => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?book=${book.slug}`;
+    const shareTitle = `${book.title} - The Recipe Vault Co.`;
+    const shareText = `Check out ${book.title}! Read free recipes and get the complete digital collection:`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+          } catch {}
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+      } catch {}
+    }
+
+    try {
+      localStorage.setItem(`rv_shared_bonus_${book.id}`, 'true');
+    } catch {}
+    setHasSharedForBonus(true);
+    setBonusShareSuccess('🎉 4 Bonus Pages Unlocked! You can now flip through Pages 6 to 9.');
+    playPageFlipSound();
+
+    setTimeout(() => {
+      setBonusShareSuccess(null);
+    }, 4500);
+  };
+
   const handlePrint = () => {
     if (!isUnlocked) {
       alert('Printing is enabled once you unlock the full collection!');
@@ -360,7 +414,11 @@ export const BookReader: React.FC<BookReaderProps> = ({
             </span>
             {!isUnlocked ? (
               <span className="text-[10px] text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-600/30">
-                Free Preview ({Math.min(currentPageNumber, previewLimit)}/{previewLimit})
+                {hasSharedForBonus ? (
+                  <span>Bonus Preview ({Math.min(currentPageNumber, effectivePreviewLimit)}/{effectivePreviewLimit})</span>
+                ) : (
+                  <span>Free Preview ({Math.min(currentPageNumber, effectivePreviewLimit)}/{effectivePreviewLimit})</span>
+                )}
               </span>
             ) : (
               <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/30">
@@ -474,6 +532,13 @@ export const BookReader: React.FC<BookReaderProps> = ({
         </div>
       )}
 
+      {bonusShareSuccess && (
+        <div className="fixed top-16 z-50 bg-gradient-to-r from-amber-600 to-[#cf7b3e] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-amber-300/40">
+          <Sparkles className="w-4 h-4 text-amber-200 animate-spin" />
+          <span>{bonusShareSuccess}</span>
+        </div>
+      )}
+
       {/* Main 3D Flip Book Frame (9:16 Vertical Phone Scale) */}
       <div
         className={`relative transition-all duration-300 flex flex-col justify-between overflow-hidden ${
@@ -550,77 +615,134 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
           {/* Main Active Page Area */}
           {isPageLocked ? (
-            /* Paywall on Page 6+ when not unlocked */
+            /* Paywall & Viral Bonus Unlock Stage */
             <div className="h-full relative flex flex-col items-center justify-center text-center p-5 bg-gradient-to-b from-[#211a14] via-[#1a1612] to-[#12100e]">
               {/* Blurred PDF Page Preview Behind Paywall */}
               {activePdfSlideUrl && (
                 <img
                   src={activePdfSlideUrl}
                   alt="Locked PDF Page"
-                  className="absolute inset-0 w-full h-full object-cover opacity-20 blur-md pointer-events-none"
+                  className="absolute inset-0 w-full h-full object-cover opacity-15 blur-md pointer-events-none"
                 />
               )}
 
-              <div className="relative z-10 flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full bg-[#cf7b3e]/20 border border-[#cf7b3e] flex items-center justify-center mb-4 text-[#dea374] animate-pulse">
-                  <Lock className="w-8 h-8" />
-                </div>
+              <div className="relative z-10 flex flex-col items-center max-w-xs">
+                {!hasSharedForBonus ? (
+                  /* Option A (Page 6 reached, initial 5 pages done): Share to unlock next 4 pages for FREE! */
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-[#cf7b3e]/30 border-2 border-amber-500 flex items-center justify-center mb-3 text-amber-400 shadow-lg shadow-amber-900/30">
+                      <Gift className="w-7 h-7 text-amber-400 animate-bounce" />
+                    </div>
 
-                <span className="text-[11px] font-bold tracking-widest uppercase text-[#dea374] mb-1">
-                  FREE 5-PAGE PREVIEW COMPLETED
-                </span>
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-amber-400 mb-1">
+                      FREE BONUS RECIPES UNLOCK
+                    </span>
 
-                <h3 className="font-serif text-xl font-bold text-white mb-2 leading-tight">
-                  Unlock All {totalPages} Pages of {book.title}
-                </h3>
+                    <h3 className="font-serif text-lg sm:text-xl font-bold text-white mb-1.5 leading-tight">
+                      Unlock the Next 4 Pages Free!
+                    </h3>
 
-                <p className="text-xs text-[#b8b0a5] mb-4 leading-relaxed">
-                  You’ve flipped through the first {previewLimit} free pages. Unlock the complete {totalPages}-page 3D flip book and downloadable printable PDF immediately.
-                </p>
+                    <p className="text-xs text-[#b8b0a5] mb-3 leading-relaxed">
+                      You’ve finished the first 5 free pages. Share this collection to immediately unlock Pages 6, 7, 8 &amp; 9 with full recipe instructions!
+                    </p>
 
-                <div className="w-full bg-[#27211b]/95 p-3 rounded-xl border border-[#3f352c] mb-4">
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-3xl font-extrabold text-white">${book.price.toFixed(2)}</span>
-                    {book.originalPrice && (
-                      <span className="text-xs line-through text-[#827a70]">
-                        ${book.originalPrice.toFixed(2)}
-                      </span>
-                    )}
-                    <span className="text-[11px] text-[#dea374] font-medium">USD</span>
-                  </div>
-                  <p className="text-[10px] text-[#9c9388] mt-0.5">
-                    One-time purchase • Instant Full Book &amp; PDF Download
-                  </p>
-                </div>
+                    {/* Viral Primary Action: Share to unlock 4 pages */}
+                    <button
+                      type="button"
+                      onClick={handleShareToUnlockBonus}
+                      className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-amber-600 to-[#cf7b3e] text-white shadow-xl shadow-amber-900/40 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-2"
+                    >
+                      <Share2 className="w-4 h-4 text-white" />
+                      <span>Share to Unlock Next 4 Pages (Free)</span>
+                    </button>
 
-                <button
-                  onClick={() =>
-                    onOpenCheckout({
-                      id: book.id,
-                      type: 'book',
-                      title: book.title,
-                      price: book.price,
-                      originalPrice: book.originalPrice,
-                    })
-                  }
-                  className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-3"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Buy &amp; Unlock Full Book (${book.price.toFixed(2)})</span>
-                </button>
+                    <div className="w-full flex items-center gap-2 my-2 text-[9px] text-[#6e665d] uppercase tracking-wider font-semibold">
+                      <div className="flex-1 h-[1px] bg-[#2a241e]" />
+                      <span>Or Get Full 108 Pages</span>
+                      <div className="flex-1 h-[1px] bg-[#2a241e]" />
+                    </div>
 
-                <form onSubmit={handleValidateToken} className="w-full mt-2 pt-2 border-t border-[#2e2720]">
+                    <button
+                      onClick={() =>
+                        onOpenCheckout({
+                          id: book.id,
+                          type: 'book',
+                          title: book.title,
+                          price: book.price,
+                          originalPrice: book.originalPrice,
+                        })
+                      }
+                      className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#241d17] hover:bg-[#30271f] text-[#dea374] border border-[#3f3428] transition-all flex items-center justify-center gap-1.5 mb-2"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>Buy Full Book &amp; PDF (${book.price.toFixed(2)})</span>
+                    </button>
+                  </>
+                ) : (
+                  /* Option B (User shared, enjoyed pages 6-9, now at Page 10+): Final paywall */
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-[#cf7b3e]/20 border border-[#cf7b3e] flex items-center justify-center mb-3 text-[#dea374] animate-pulse">
+                      <Lock className="w-7 h-7" />
+                    </div>
+
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-[#dea374] mb-1">
+                      FREE PREVIEW COMPLETED (9 PAGES)
+                    </span>
+
+                    <h3 className="font-serif text-lg sm:text-xl font-bold text-white mb-1.5 leading-tight">
+                      Unlock All {totalPages} Pages of {book.title}
+                    </h3>
+
+                    <p className="text-xs text-[#b8b0a5] mb-3 leading-relaxed">
+                      You’ve enjoyed 9 free recipes (including your 4 bonus shared pages). Unlock all 30 iconic recipes, grocery checklists, and printable PDF now!
+                    </p>
+
+                    <div className="w-full bg-[#27211b]/95 p-2.5 rounded-xl border border-[#3f352c] mb-3">
+                      <div className="flex items-baseline justify-center gap-1.5">
+                        <span className="text-2xl font-extrabold text-white">${book.price.toFixed(2)}</span>
+                        {book.originalPrice && (
+                          <span className="text-xs line-through text-[#827a70]">
+                            ${book.originalPrice.toFixed(2)}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-[#dea374] font-medium">USD</span>
+                      </div>
+                      <p className="text-[9px] text-[#9c9388] mt-0.5">
+                        One-time purchase • Instant Full Book &amp; PDF Download
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        onOpenCheckout({
+                          id: book.id,
+                          type: 'book',
+                          title: book.title,
+                          price: book.price,
+                          originalPrice: book.originalPrice,
+                        })
+                      }
+                      className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-2"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Buy &amp; Unlock Full Book (${book.price.toFixed(2)})</span>
+                    </button>
+                  </>
+                )}
+
+                {/* Token Unlock Form */}
+                <form onSubmit={handleValidateToken} className="w-full mt-1 pt-2 border-t border-[#2e2720]">
                   <div className="flex gap-1.5">
                     <input
                       type="text"
                       value={tokenInput}
                       onChange={(e) => setTokenInput(e.target.value)}
                       placeholder="Already bought? Enter RV-... token"
-                      className="flex-1 bg-[#141210] border border-[#3b332b] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-[#6c655b] focus:outline-none focus:border-[#cf7b3e]"
+                      className="flex-1 bg-[#141210] border border-[#3b332b] rounded-lg px-2.5 py-1 text-[11px] text-white placeholder-[#6c655b] focus:outline-none focus:border-[#cf7b3e]"
                     />
                     <button
                       type="submit"
-                      className="bg-[#2e2720] hover:bg-[#3d332a] text-[#dea374] text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#443a2f]"
+                      className="bg-[#2e2720] hover:bg-[#3d332a] text-[#dea374] text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-[#443a2f]"
                     >
                       Unlock
                     </button>
@@ -630,7 +752,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
                 <button
                   onClick={() => setCurrentPageIndex(0)}
-                  className="mt-3 text-[11px] text-[#dea374] hover:text-white underline"
+                  className="mt-2.5 text-[11px] text-[#dea374] hover:text-white underline"
                 >
                   ← Flip Back to Page 1 Cover
                 </button>
@@ -639,6 +761,14 @@ export const BookReader: React.FC<BookReaderProps> = ({
           ) : activePdfSlideUrl ? (
             /* Full-Bleed 9:16 Rendered PDF Page (with left/right tap zones to flip like a real book!) */
             <div className="h-full w-full relative flex items-center justify-center bg-[#0e0c0a] overflow-hidden group">
+              {/* Bonus Page indicator banner on pages 6-9 */}
+              {isCurrentPageBonus && (
+                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 bg-amber-500/25 backdrop-blur-md border border-amber-500/60 text-amber-200 text-[10px] font-bold px-3 py-0.5 rounded-full shadow-lg flex items-center gap-1.5 pointer-events-none">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <span>Bonus Page {currentPageNumber} of 9 (Unlocked via Share)</span>
+                </div>
+              )}
+
               <img
                 src={activePdfSlideUrl}
                 alt={`${book.title} - Page ${currentPageNumber}`}
@@ -805,9 +935,13 @@ export const BookReader: React.FC<BookReaderProps> = ({
           <span className="text-emerald-400 font-semibold flex items-center gap-1">
             <Unlock className="w-3 h-3" /> All {totalPages} PDF Pages Unlocked
           </span>
+        ) : hasSharedForBonus ? (
+          <span className="text-amber-400 font-semibold flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-amber-400" /> 9 Free Pages Unlocked (5 Free + 4 Shared Bonus)
+          </span>
         ) : (
           <span className="text-amber-400 font-semibold">
-            First {previewLimit} Pages Free Preview
+            First 5 Pages Free Preview • Share on Page 6 to Unlock +4 Bonus Pages!
           </span>
         )}
       </div>
@@ -833,7 +967,8 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
             <div className="flex-1 overflow-y-auto p-3 grid grid-cols-4 gap-2">
               {Array.from({ length: totalPages }, (_, idx) => {
-                const isLocked = !isUnlocked && idx >= previewLimit;
+                const isBonusUnlocked = !isUnlocked && hasSharedForBonus && idx >= 5 && idx < 9;
+                const isLocked = !isUnlocked && (hasSharedForBonus ? idx >= 9 : idx >= 5);
                 return (
                   <button
                     key={idx}
@@ -844,6 +979,8 @@ export const BookReader: React.FC<BookReaderProps> = ({
                     className={`p-2.5 rounded-xl flex flex-col items-center justify-center border text-xs font-bold transition-all ${
                       currentPageIndex === idx
                         ? 'bg-[#cf7b3e] border-[#dea374] text-white'
+                        : isBonusUnlocked
+                        ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/60'
                         : isLocked
                         ? 'bg-[#141210] border-[#26201a] text-[#777] hover:border-amber-500/40'
                         : 'bg-[#221d18] border-[#332b22] text-[#dea374] hover:bg-[#2d261f]'
@@ -854,7 +991,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       <Lock className="w-3 h-3 text-amber-500 mt-0.5" />
                     ) : (
                       <span className="text-[9px] text-emerald-400 font-normal mt-0.5">
-                        {idx === 0 ? 'Cover' : idx < previewLimit ? 'Free' : 'Open'}
+                        {idx === 0 ? 'Cover' : isBonusUnlocked ? 'Bonus' : idx < 5 ? 'Free' : 'Open'}
                       </span>
                     )}
                   </button>

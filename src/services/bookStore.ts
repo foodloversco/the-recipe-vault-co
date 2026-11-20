@@ -49,6 +49,7 @@ class BookStore {
                 pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_1.pdf',
                 pdfFileName: 'South_African_Braai_Heritage_Series_1.pdf',
                 soldCount: b.soldCount && b.soldCount !== 48 ? b.soldCount : 385,
+                likesCount: b.likesCount !== undefined ? b.likesCount : 191,
               };
             }
             return b;
@@ -311,6 +312,14 @@ class BookStore {
       this.favoriteBookIds.add(bookId);
       isFav = true;
     }
+
+    const target = this.books.find((b) => b.id === bookId || b.slug === bookId);
+    if (target) {
+      const currentLikes = target.likesCount !== undefined ? target.likesCount : 191;
+      target.likesCount = isFav ? currentLikes + 1 : Math.max(191, currentLikes - 1);
+      this.saveBooksToStorage();
+    }
+
     this.saveFavoritesToStorage();
     this.notifyListeners();
     return isFav;

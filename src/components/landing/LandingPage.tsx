@@ -151,7 +151,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <img 
                   src={featuredBook.coverImage} 
                   alt={featuredBook.title} 
-                  className="w-full h-full object-cover group-hover:brightness-95 transition-all" 
+                  className="w-full h-full object-contain object-top select-none group-hover:brightness-95 transition-all" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-4">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-[#dea374]">
@@ -450,157 +450,158 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
           {books.map((book) => {
             const isUnlocked = unlockedBookIds.has(book.id);
 
             return (
               <div 
                 key={book.id} 
-                className="bg-[#181614] border border-[#2d261f] hover:border-[#cf7b3e]/50 rounded-3xl overflow-hidden transition-all flex flex-col justify-between shadow-lg"
+                className="bg-[#181614] border border-[#2d261f] hover:border-[#cf7b3e]/50 rounded-2xl sm:rounded-3xl overflow-hidden transition-all flex flex-col justify-between shadow-lg"
               >
                 <div>
-                  {/* Full 9:16 Cover Image (Clean & Unobstructed) */}
+                  {/* Full 9:16 Cover Image (Guaranteed 100% Unclipped at Top & Bottom) */}
                   <div 
                     onClick={() => onOpenReader(book.slug)}
-                    className="w-full aspect-[9/16] max-h-[460px] relative overflow-hidden bg-[#12110f] cursor-pointer group"
+                    className="w-full aspect-[9/16] relative overflow-hidden bg-[#0c0a09] cursor-pointer group flex items-center justify-center"
                   >
                     <img 
                       src={book.coverImage} 
                       alt={book.title} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                      className="w-full h-full object-contain object-top select-none transition-transform duration-500 group-hover:scale-105" 
                     />
 
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-xs font-bold text-[#dea374]">
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-2 sm:p-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-[10px] sm:text-xs font-bold text-[#dea374]">
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Click to Open Page 1 Full Screen</span>
+                      <span className="hidden sm:inline">Click to Open Page 1 Full Screen</span>
+                      <span className="sm:hidden">Read Page 1</span>
                     </div>
                   </div>
 
                   {/* Body */}
-                  <div className="p-5">
-                    {/* Share & Like Row under the image */}
-                    <div className="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#25201b]">
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-[#201b17] text-[#dea374] border border-[#cf7b3e]/30">
+                  <div className="p-2.5 sm:p-5">
+                    {/* Line 1: Category on its own line */}
+                    <div className="mb-2">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full bg-[#201b17] text-[#dea374] border border-[#cf7b3e]/30 inline-block truncate max-w-full">
                         {book.category}
                       </span>
-
-                      <div className="flex items-center gap-1.5">
-                        {/* Like Button */}
-                        <button
-                          onClick={(e) => handleToggleFavoriteBook(book.id, e)}
-                          title={bookStore.isBookFavorited(book.id) ? 'Saved in Favorites & Wishlist' : 'Add to Favorites & Wishlist'}
-                          className={`px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 text-xs font-semibold ${
-                            bookStore.isBookFavorited(book.id)
-                              ? 'bg-rose-600 text-white border-rose-400 shadow-md'
-                              : 'bg-[#221c17] hover:bg-rose-950/60 text-rose-400 border-rose-500/30'
-                          }`}
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${bookStore.isBookFavorited(book.id) ? 'fill-white' : ''}`} />
-                          <span className="text-[11px]">{bookStore.isBookFavorited(book.id) ? 'Liked' : 'Like'}</span>
-                        </button>
-
-                        {/* Share Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyLink(book.slug, e);
-                          }}
-                          title="Copy Unique Link"
-                          className="px-2.5 py-1 rounded-full bg-[#221c17] hover:bg-[#2e2620] text-[#c2bcaf] hover:text-white border border-[#382f25] transition-all flex items-center gap-1 text-xs font-semibold"
-                        >
-                          <Share2 className="w-3.5 h-3.5 text-[#dea374]" />
-                          <span className="text-[11px]">{copiedSlug === book.slug ? 'Copied' : 'Share'}</span>
-                        </button>
-                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-[#dea374] mb-1 font-mono">
-                      <span>30 Phone Recipes</span>
+                    {/* Line 2 (Under it): Like with 191 Counter & Share */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 pb-2 border-b border-[#25201b]">
+                      {/* Like Button with counter */}
                       <button
-                        type="button"
-                        onClick={() => setReviewModalBook(book)}
-                        className="flex items-center gap-1 text-amber-400 hover:text-amber-300"
-                        title="Click to view 4.7-star rating & reviews"
+                        onClick={(e) => handleToggleFavoriteBook(book.id, e)}
+                        title={bookStore.isBookFavorited(book.id) ? 'Saved in Favorites & Wishlist' : 'Add to Favorites & Wishlist'}
+                        className={`px-2 sm:px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 text-[10px] sm:text-xs font-semibold ${
+                          bookStore.isBookFavorited(book.id)
+                            ? 'bg-rose-600 text-white border-rose-400 shadow-md'
+                            : 'bg-[#221c17] hover:bg-rose-950/60 text-rose-400 border-rose-500/30'
+                        }`}
                       >
-                        <Star className="w-3 h-3 fill-amber-400" />
-                        <span className="font-bold text-white text-[11px]">4.7</span>
-                        <span className="text-[10px] text-[#8e8578] font-sans">(184)</span>
+                        <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${bookStore.isBookFavorited(book.id) ? 'fill-white' : ''}`} />
+                        <span>{bookStore.isBookFavorited(book.id) ? 'Liked' : 'Like'}</span>
+                        <span className="text-[10px] sm:text-[11px] font-bold text-white/90 ml-0.5">
+                          {book.likesCount ?? 191}
+                        </span>
+                      </button>
+
+                      {/* Share Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyLink(book.slug, e);
+                        }}
+                        title="Copy Unique Link"
+                        className="px-2 sm:px-2.5 py-1 rounded-full bg-[#221c17] hover:bg-[#2e2620] text-[#c2bcaf] hover:text-white border border-[#382f25] transition-all flex items-center gap-1 text-[10px] sm:text-xs font-semibold"
+                      >
+                        <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#dea374]" />
+                        <span>{copiedSlug === book.slug ? 'Copied' : 'Share'}</span>
                       </button>
                     </div>
 
-                    <h3 className="font-serif font-bold text-base text-white leading-snug mb-1">
+                    <div className="flex items-center justify-between text-[9px] sm:text-[11px] text-[#dea374] mb-1 font-mono">
+                      <span className="truncate">30 Phone Recipes</span>
+                      <button
+                        type="button"
+                        onClick={() => setReviewModalBook(book)}
+                        className="flex items-center gap-0.5 sm:gap-1 text-amber-400 hover:text-amber-300 flex-shrink-0"
+                        title="Click to view 4.7-star rating & reviews"
+                      >
+                        <Star className="w-3 h-3 fill-amber-400" />
+                        <span className="font-bold text-white text-[10px] sm:text-[11px]">4.7</span>
+                        <span className="text-[9px] sm:text-[10px] text-[#8e8578] font-sans">(184)</span>
+                      </button>
+                    </div>
+
+                    <h3 className="font-serif font-bold text-xs sm:text-base text-white leading-snug mb-1 line-clamp-2">
                       {book.title}
                     </h3>
 
-                    <p className="text-xs text-[#a39c91] line-clamp-2 mb-3">
+                    <p className="text-[10px] sm:text-xs text-[#a39c91] line-clamp-2 mb-2 sm:mb-3">
                       {book.description}
                     </p>
 
-                    <div className="text-[10px] text-[#7d756a] font-mono truncate">
+                    <div className="text-[9px] sm:text-[10px] text-[#7d756a] font-mono truncate hidden sm:block">
                       Link: /book/{book.slug}
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Price & Buttons */}
-                <div className="p-5 pt-0 border-t border-[#241f1a] mt-2">
-                  <div className="flex items-baseline justify-between py-2">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="text-lg font-extrabold text-white">
+                {/* Footer Price, Sold Counter & Buttons */}
+                <div className="p-2.5 sm:p-5 pt-0 border-t border-[#241f1a] mt-2">
+                  <div className="flex items-baseline justify-between py-1.5 sm:py-2">
+                    <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
+                      <span className="text-base sm:text-lg font-extrabold text-white">
                         ${book.price.toFixed(2)}
                       </span>
                       {book.originalPrice && (
-                        <span className="text-xs line-through text-[#8e8578] font-semibold">
+                        <span className="text-[10px] sm:text-xs line-through text-[#8e8578] font-semibold">
                           ${book.originalPrice.toFixed(2)}
                         </span>
                       )}
-                      <span className="text-[10px] text-[#dea374] font-semibold">USD</span>
+                      <span className="text-[9px] sm:text-[10px] text-[#dea374] font-semibold">USD</span>
                       {book.originalPrice && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30">
+                        <span className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30">
                           {book.promoExpiresAt !== undefined ? promoStore.getDaysRemaining(book.promoExpiresAt) : 'SALE'}
                         </span>
                       )}
                     </div>
                     {isUnlocked && (
-                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                        <Unlock className="w-3 h-3" /> Unlocked
+                      <span className="text-[9px] sm:text-[10px] text-emerald-400 font-semibold flex items-center gap-0.5">
+                        <Unlock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Unlocked
                       </span>
                     )}
                   </div>
 
-                  {/* Above Buy Button: Exactly shows how much sold right above Buy ($) */}
-                  <div className="grid grid-cols-2 gap-2 mb-1.5 items-end">
-                    <div className="text-[11px] text-[#8e8578]">
-                      {isUnlocked ? '✓ Lifetime Access' : '5 Free Pages'}
+                  {/* Sold Counter Placed Directly Above Buy Button */}
+                  <div className="flex items-center justify-between mb-1.5 pt-0.5 text-[9px] sm:text-[11px]">
+                    <span className="text-[#8e8578] truncate">
+                      {isUnlocked ? '✓ Lifetime' : '5 Free Pages'}
+                    </span>
+                    <div className="flex justify-end">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-amber-300 bg-amber-950/85 px-2 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 shadow-sm">
+                        <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400 fill-amber-400 flex-shrink-0" />
+                        <span>{book.soldCount ?? 385} Sold</span>
+                      </span>
                     </div>
-                    {book.soldCount !== undefined && book.soldCount > 0 ? (
-                      <div className="flex justify-end">
-                        <span className="text-[10px] font-bold text-amber-300 bg-amber-950/85 px-2.5 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 shadow-sm">
-                          <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
-                          <span>{book.soldCount} Sold</span>
-                        </span>
-                      </div>
-                    ) : (
-                      <div />
-                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mt-1">
                     <button
                       onClick={() => onOpenReader(book.slug)}
-                      className="py-2.5 px-3 rounded-xl bg-[#25201b] hover:bg-[#332b24] text-[#dea374] text-xs font-semibold border border-[#3a3128] transition-all flex items-center justify-center gap-1"
+                      className="py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl bg-[#25201b] hover:bg-[#332b24] text-[#dea374] text-[10px] sm:text-xs font-semibold border border-[#3a3128] transition-all flex items-center justify-center gap-1 truncate"
                     >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>{isUnlocked ? 'Read Full' : 'Preview (5)'}</span>
+                      <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                      <span className="truncate">{isUnlocked ? 'Read Full' : 'Preview (5)'}</span>
                     </button>
 
                     <button
                       onClick={() => onOpenCheckout({ id: book.id, type: 'book', title: book.title, price: book.price, originalPrice: book.originalPrice })}
-                      className="py-2.5 px-3 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1"
+                      className="py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-[10px] sm:text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1 truncate"
                     >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Buy ($)</span>
+                      <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                      <span className="truncate">Buy ($)</span>
                     </button>
                   </div>
                 </div>

@@ -34,6 +34,7 @@ export interface Book {
   price: number; // in USD
   originalPrice?: number;
   soldCount?: number; // Admin configurable base count + auto-incremented on each sale
+  likesCount?: number; // Starting at 191 + auto-increments on like
   promoCode?: string;
   promoExpiresAt?: string | null; // ISO timestamp or null for lifetime
   promoDurationDays?: number | 'lifetime';
