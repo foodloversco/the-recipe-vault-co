@@ -6,7 +6,7 @@ const SETTINGS_KEY = 'the_recipe_vault_settings_v1';
 const DEFAULT_SETTINGS: AppSettings = {
   appName: 'The Recipe Vault Co.',
   subHeading: APP_SUBHEADING,
-  paypalClientId: 'test',
+  paypalClientId: 'AZBeT5_HBp_DqTmKTP3MTyQme1YRcSPmoEeeZ9WRRykDtHVd8WVvpthaGeGm17kQYa3T1BfjKVUmdIvK',
   paypalMode: 'sandbox',
   storageProvider: 'cloudflare-r2', // Cloudflare R2: 10GB free + $0 egress bandwidth
   r2AccountId: '96919865db5f5c66d503f8cbe3abc1b5',
@@ -33,6 +33,9 @@ class SettingsStore {
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
         this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+        if (this.settings.paypalClientId === 'test' || !this.settings.paypalClientId) {
+          this.settings.paypalClientId = DEFAULT_SETTINGS.paypalClientId;
+        }
       }
     } catch (e) {
       console.warn('Failed to load settings:', e);
