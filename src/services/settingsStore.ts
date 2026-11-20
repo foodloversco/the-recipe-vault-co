@@ -6,8 +6,8 @@ const SETTINGS_KEY = 'the_recipe_vault_settings_v1';
 const DEFAULT_SETTINGS: AppSettings = {
   appName: 'The Recipe Vault Co.',
   subHeading: APP_SUBHEADING,
-  paypalClientId: 'AZBeT5_HBp_DqTmKTP3MTyQme1YRcSPmoEeeZ9WRRykDtHVd8WVvpthaGeGm17kQYa3T1BfjKVUmdIvK',
-  paypalMode: 'sandbox',
+  paypalClientId: 'BAAp3adJFiwr-Tg0AhBFzNQEp3mTL2aSGQepNk3SjGYwzm2q5nlOeOT8jPtjA8ZPJF6gw43VUaZzhK8BvU',
+  paypalMode: 'live',
   storageProvider: 'cloudflare-r2', // Cloudflare R2: 10GB free + $0 egress bandwidth
   r2AccountId: '96919865db5f5c66d503f8cbe3abc1b5',
   r2AccessKeyId: '8391e9775eb64f2aa6c6d5996df49c19',
@@ -33,8 +33,13 @@ class SettingsStore {
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
         this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-        if (this.settings.paypalClientId === 'test' || !this.settings.paypalClientId) {
+        if (
+          this.settings.paypalClientId === 'test' ||
+          !this.settings.paypalClientId ||
+          this.settings.paypalClientId.startsWith('AZBeT5')
+        ) {
           this.settings.paypalClientId = DEFAULT_SETTINGS.paypalClientId;
+          this.settings.paypalMode = 'live';
         }
       }
     } catch (e) {
