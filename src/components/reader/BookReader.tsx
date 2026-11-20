@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Book, RecipePage } from '../../types';
 import { bookStore } from '../../services/bookStore';
+import { reviewStore } from '../../services/reviewStore';
 import { loadPdfDocument, renderSinglePdfPage } from '../../utils/pdfPageExtractor';
+import { BookReviewsModal } from '../reviews/BookReviewsModal';
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,7 +25,8 @@ import {
   VolumeX,
   Download,
   Loader2,
-  BookOpen
+  BookOpen,
+  Star
 } from 'lucide-react';
 
 interface BookReaderProps {
@@ -53,6 +56,22 @@ export const BookReader: React.FC<BookReaderProps> = ({
   const [tokenInput, setTokenInput] = useState<string>('');
   const [tokenError, setTokenError] = useState<string>('');
   const [, setFavTick] = useState<number>(0);
+  const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+  const [isThirdOpenPrompt, setIsThirdOpenPrompt] = useState<boolean>(false);
+
+  // 3rd Time Book Open Pop-Up For Verified Buyers
+  useEffect(() => {
+    if (isUnlocked) {
+      const isThird = reviewStore.recordBookOpen(book.id, true);
+      if (isThird) {
+        setIsThirdOpenPrompt(true);
+        const timer = setTimeout(() => {
+          setShowReviewModal(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [book.id, isUnlocked]);
 
   // 3D Page Flip Animation State
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
@@ -351,8 +370,21 @@ export const BookReader: React.FC<BookReaderProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons: Favorite Recipe, Flip Sound, TOC, Print, Share, Fullscreen */}
+        {/* Action Buttons: Reviews / Ratings, Favorite Recipe, Flip Sound, TOC, Print, Share, Fullscreen */}
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              setIsThirdOpenPrompt(false);
+              setShowReviewModal(true);
+            }}
+            title="Read or Submit Verified Buyer Reviews"
+            className="px-2.5 py-1.5 rounded-full border border-amber-500/30 bg-[#1c1a18] hover:bg-[#2b2722] text-amber-400 text-xs font-semibold flex items-center gap-1 transition-all"
+          >
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <span>4.7</span>
+            <span className="hidden sm:inline text-[#a8a196]">(Reviews)</span>
+          </button>
+
           <button
             onClick={() => {
               if (currentPageNumber > 1) {
@@ -831,6 +863,18 @@ export const BookReader: React.FC<BookReaderProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Verified Reviews & 3rd Open Rating Pop-Up Modal */}
+      {showReviewModal && (
+        <BookReviewsModal
+          book={book}
+          isOpen={showReviewModal}
+          isUnlocked={isUnlocked}
+          isThirdOpenPrompt={isThirdOpenPrompt}
+          onClose={() => setShowReviewModal(false)}
+          onOpenCheckout={onOpenCheckout}
+        />
       )}
     </div>
   );

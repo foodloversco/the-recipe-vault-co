@@ -129,4 +129,16 @@ export interface FavoriteRecipeItem {
   addedAt: string;
 }
 
+export interface BookReview {
+  id: string;
+  bookId: string;
+  authorName: string;
+  authorLocation?: string;
+  rating: number; // 1 to 5
+  comment: string;
+  date: string;
+  isVerifiedBuyer: boolean;
+}
+
+
 

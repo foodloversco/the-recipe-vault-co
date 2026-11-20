@@ -8,12 +8,22 @@ export const INITIAL_BOOKS: Book[] = [
     slug: 'south-africa-braai-heritage',
     title: 'South Africa Braai & Heritage Series 1',
     subtitle: 'Volume 01: Fire, Ember & Heritage',
-    tagline: '30 Phone-Ready Recipe Cards + Categorized Grocery Checklists',
-    description: 'An editorial, phone-first master collection of South Africa’s most iconic open-flame recipes. Built for effortless one-handed kitchen and fireside cooking with step-by-step foolproof instructions, heat management guides, and categorized grocery checklists.',
+    tagline: 'Unlock the Complete 108-Page South African Braai & Heritage: Series 1 Digital Collection for Just $1!',
+    description: `Stop losing recipes in your saved videos or guessing measurements at the coals. Get all 30 iconic South African braai & heritage recipes, 30 aisle-by-aisle grocery checklists, 30 full-page dish photos, and 5 essential wood, coal, spice & temperature guides in one phone-ready vertical PDF.
+
+Inside Series 1 (Chapters 01–08):
+• 🔥 Braai Meat & Chops: Traditional Boerewors, Karoo Lamb Chops (Lams-Tjoppies), Flame-Grilled Beef T-Bone Steak, Sticky Sweet Mustard Pork Ribs
+• 🍗 Poultry & Skewers: Peri-Peri Spatchcock Chicken, Cape Malay Curried Chicken Sosaties, Sticky Apricot & Chutney Chicken, Smoky Beer-Can Braai Chicken
+• 🦞 Seafood Classics: Whole Braaied Snoek with Apricot Butter, Garlic Butter Braai Crayfish Tails, Braaied Cape Yellowtail, Fire-Roasted Peri-Peri Tiger Prawns
+• 🍲 Potjiekos Heritage: Traditional Oxtail Potjie, Creamy Chicken & Mushroom Potjie, Karoo Lamb Potjie, Rich Beef & Red Wine Potjie
+• 🍞 Braai Breads, Salads & Condiments: Cheese & Onion Braaibroodjies, Grid Roosterkoek, Cheesy Bacon & Sweetcorn Pap Tart, Campfire Garlic Braai Loaf, Curried Noodle Salad, Creamy Potato Salad, Beetroot Salad, Apple & Pecan Coleslaw, Charred Sweetcorn & Feta Salad, Spicy Chakalaka, Cape Malay Apricot Blatjang, Pickled Radish Sambal
+• 🍮 Sweet Desserts: Traditional South African Melktert & Warm Caramelized Malva Pudding
+
+Tap below to unlock all 30 recipes + grocery lists instantly for $1!`,
     coverImage: '/assets/images/south-africa-braai-cover.jpg',
     price: 1.00,
     originalPrice: 12.99,
-    soldCount: 48,
+    soldCount: 385,
     recipeCount: 30,
     previewPagesAllowed: 5,
     category: 'Open-Fire & Grilling',

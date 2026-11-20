@@ -48,7 +48,7 @@ class BookStore {
                     : '/assets/images/south-africa-braai-cover.jpg',
                 pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_1.pdf',
                 pdfFileName: 'South_African_Braai_Heritage_Series_1.pdf',
-                soldCount: b.soldCount !== undefined ? b.soldCount : 48,
+                soldCount: b.soldCount && b.soldCount !== 48 ? b.soldCount : 385,
               };
             }
             return b;
