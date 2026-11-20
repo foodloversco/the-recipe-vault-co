@@ -33,6 +33,9 @@ export interface Book {
   coverImage: string;
   price: number; // in USD
   originalPrice?: number;
+  promoCode?: string;
+  promoExpiresAt?: string | null; // ISO timestamp or null for lifetime
+  promoDurationDays?: number | 'lifetime';
   recipeCount: number;
   previewPagesAllowed: number; // default 5
   pdfFileUrl?: string;
@@ -95,5 +98,20 @@ export interface AppSettings {
   // Hybrid Mode A (Vercel Cloud Sync) + Mode B (Offline Bundle Fallback)
   vercelLiveUrl?: string;
   hybridUpdateMode?: 'both' | 'cloud-only' | 'offline-only';
+}
+
+export interface PromoCode {
+  id: string;
+  code: string; // e.g. "TASTE299", "CHEF50"
+  description?: string;
+  bookId: string; // 'all' or specific book ID
+  bookTitle?: string;
+  regularPrice: number; // e.g. 6.99
+  promoPrice: number; // e.g. 2.99
+  durationDays: number | 'lifetime'; // 'lifetime', 25, 30, 50, or custom number of days
+  createdAt: string;
+  expiresAt: string | null; // null for lifetime, or ISO date
+  isActive: boolean;
+  timesUsed: number;
 }
 

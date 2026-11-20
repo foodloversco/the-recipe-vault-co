@@ -5,6 +5,8 @@ import { salesStore } from '../../services/salesStore';
 import { storageService } from '../../services/storageService';
 import { settingsStore } from '../../services/settingsStore';
 import { hybridSyncService } from '../../services/hybridSyncService';
+import { promoStore } from '../../services/promoStore';
+import { PromoCode } from '../../types';
 import { 
   UploadCloud, 
   DollarSign, 
@@ -24,7 +26,12 @@ import {
   Server, 
   Key, 
   Smartphone, 
-  Globe 
+  Globe,
+  Tag,
+  Percent,
+  Clock,
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 
 interface AdminPortalProps {
@@ -33,10 +40,11 @@ interface AdminPortalProps {
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreviewBook }) => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'sales' | 'bundles' | 'accounts'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'sales' | 'promos' | 'bundles' | 'accounts'>('upload');
   const [books, setBooks] = useState<Book[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [sales, setSales] = useState<SaleTransaction[]>([]);
+  const [promos, setPromos] = useState<PromoCode[]>([]);
   
   // Book Upload & Price State
   const [title, setTitle] = useState('');
@@ -51,6 +59,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState('');
+
+  // Promo & Strike-Through Deals State
+  const [promoTargetBookId, setPromoTargetBookId] = useState('all');
+  const [promoRegularPrice, setPromoRegularPrice] = useState('6.99');
+  const [promoSalePrice, setPromoSalePrice] = useState('2.99');
+  const [promoCode, setPromoCode] = useState('CHEF299');
+  const [promoDurationType, setPromoDurationType] = useState<'lifetime' | '25' | '30' | '50' | 'custom'>('30');
+  const [promoCustomDays, setPromoCustomDays] = useState('30');
+  const [promoSuccessMsg, setPromoSuccessMsg] = useState('');
 
   // Bundle Creator State
   const [bundleTitle, setBundleTitle] = useState('');
@@ -97,6 +114,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     setBooks(bookStore.getBooks());
     setBundles(bookStore.getBundles());
     setSales(salesStore.getSales());
+    setPromos(promoStore.getPromos());
   };
 
   const handleTitleChange = (val: string) => {
@@ -158,6 +176,66 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
       setIsUploading(false);
       alert('Upload failed: ' + err);
     }
+  };
+
+  const handleGenerateRandomCode = () => {
+    const prefixes = ['VAULT', 'CHEF', 'SPECIAL', 'DEAL', 'VIP', 'FLASH'];
+    const pfx = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const priceInt = Math.round(parseFloat(promoSalePrice) || 3);
+    setPromoCode(`${pfx}${priceInt > 0 ? priceInt : '50'}`);
+  };
+
+  const handleCreatePromo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoCode.trim()) {
+      alert('Please enter or generate a promo code.');
+      return;
+    }
+
+    const reg = parseFloat(promoRegularPrice) || 6.99;
+    const sale = parseFloat(promoSalePrice) || 2.99;
+    if (sale >= reg) {
+      alert('Promo price should be less than the regular price to show a strikethrough savings!');
+      return;
+    }
+
+    let duration: number | 'lifetime';
+    if (promoDurationType === 'lifetime') {
+      duration = 'lifetime';
+    } else if (promoDurationType === 'custom') {
+      duration = Math.max(1, parseInt(promoCustomDays) || 30);
+    } else {
+      duration = parseInt(promoDurationType) || 30;
+    }
+
+    const targetBook = books.find((b) => b.id === promoTargetBookId);
+
+    promoStore.savePromo({
+      code: promoCode.trim().toUpperCase(),
+      description: `Save $${(reg - sale).toFixed(2)}: regular $${reg.toFixed(2)} struck through, now $${sale.toFixed(2)}`,
+      bookId: promoTargetBookId,
+      bookTitle: targetBook ? targetBook.title : 'All Books / Storewide',
+      regularPrice: reg,
+      promoPrice: sale,
+      durationDays: duration,
+      isActive: true,
+    });
+
+    refreshData();
+    setPromoSuccessMsg(`Promo "${promoCode.toUpperCase()}" launched! Strikethrough deal ($${reg.toFixed(2)} -> $${sale.toFixed(2)}) is live.`);
+    setTimeout(() => setPromoSuccessMsg(''), 4500);
+  };
+
+  const handleDeletePromo = (id: string) => {
+    if (confirm('Are you sure you want to delete this promo deal?')) {
+      promoStore.deletePromo(id);
+      refreshData();
+    }
+  };
+
+  const handleTogglePromo = (id: string) => {
+    promoStore.togglePromo(id);
+    refreshData();
   };
 
   const handleSaveBundle = (e: React.FormEvent) => {
@@ -292,6 +370,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
           </button>
 
           <button
+            onClick={() => setActiveTab('promos')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'promos'
+                ? 'bg-[#cf7b3e] text-white shadow-lg shadow-[#cf7b3e]/20'
+                : 'bg-[#1a1715] text-[#b3aaa0] hover:text-white border border-[#2b251f]'
+            }`}
+          >
+            <Tag className="w-4 h-4" />
+            <span>3. Promos &amp; Strikethrough Deals ({promos.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('bundles')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'bundles'
@@ -300,7 +390,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>3. Create Bundles</span>
+            <span>4. Create Bundles</span>
           </button>
 
           <button
@@ -312,7 +402,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span>4. Accounts, Vercel & Free Storage</span>
+            <span>5. Accounts, Vercel &amp; Free Storage</span>
           </button>
         </div>
 
@@ -675,7 +765,350 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
           </div>
         )}
 
-        {/* TAB 3: CREATE BUNDLES */}
+        {/* TAB 3: PROMOS & STRIKE-THROUGH DEALS */}
+        {activeTab === 'promos' && (
+          <div className="space-y-6">
+            {promoSuccessMsg && (
+              <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>{promoSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Creator Form */}
+              <div className="lg:col-span-2 bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-5 h-5 text-[#dea374]" />
+                    <h2 className="font-serif text-lg font-bold text-white">
+                      Create Strike-Through Promo Deal
+                    </h2>
+                  </div>
+                  <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#27211c] text-[#dea374] font-semibold border border-[#3e342a]">
+                    Instant Storefront &amp; PayPal Sync
+                  </span>
+                </div>
+
+                <p className="text-xs text-[#a8a195] mb-6 leading-relaxed">
+                  Offer a limited-time or lifetime deal (e.g. was <strong>$6.99</strong>, now <strong>$2.99</strong> with strikethrough). Customers can claim it directly on the card or enter the promo code at checkout.
+                </p>
+
+                <form onSubmit={handleCreatePromo} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                      Target Booklet
+                    </label>
+                    <select
+                      value={promoTargetBookId}
+                      onChange={(e) => setPromoTargetBookId(e.target.value)}
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    >
+                      <option value="all">All Books &amp; Bundles (Storewide Promo Code)</option>
+                      {books.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.title} (Current Price: ${b.price.toFixed(2)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                        Regular Cost ($ Strikethrough)
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#777]" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          value={promoRegularPrice}
+                          onChange={(e) => setPromoRegularPrice(e.target.value)}
+                          placeholder="6.99"
+                          className="w-full bg-[#121110] border border-[#383027] rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                        />
+                      </div>
+                      <span className="text-[10px] text-[#7d756a]">Shown with strikethrough line (~$6.99~)</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-[#c4bcae] mb-1">
+                        New Promo / Deal Price ($)
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#dea374]" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          value={promoSalePrice}
+                          onChange={(e) => setPromoSalePrice(e.target.value)}
+                          placeholder="2.99"
+                          className="w-full bg-[#121110] border border-[#383027] rounded-xl pl-8 pr-3 py-2 text-xs text-white font-bold text-emerald-400 placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                        />
+                      </div>
+                      <span className="text-[10px] text-emerald-400">Actual price customer pays at checkout</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-[#c4bcae]">
+                        Promo Code
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGenerateRandomCode}
+                        className="text-[10px] text-[#dea374] hover:text-[#ffd700] font-semibold flex items-center gap-1 transition-colors"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>Generate Random Code</span>
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. CHEF299 or FLASH50"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white uppercase font-mono font-bold tracking-wider placeholder-[#686055] focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+
+                  {/* Duration Selector */}
+                  <div>
+                    <label className="block text-xs font-medium text-[#c4bcae] mb-1.5 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#dea374]" />
+                      <span>Duration &amp; Expiry (Runs for Life or Days)</span>
+                    </label>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {[
+                        { id: 'lifetime', label: 'Run for Life' },
+                        { id: '25', label: '25 Days' },
+                        { id: '30', label: '30 Days' },
+                        { id: '50', label: '50 Days' },
+                        { id: 'custom', label: 'Custom' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setPromoDurationType(item.id as any)}
+                          className={`py-2 px-2 rounded-xl text-xs font-semibold transition-all border text-center ${
+                            promoDurationType === item.id
+                              ? 'bg-[#cf7b3e] text-white border-[#cf7b3e] shadow-md shadow-[#cf7b3e]/25'
+                              : 'bg-[#121110] text-[#a8a195] border-[#383027] hover:border-[#645647]'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {promoDurationType === 'custom' && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={promoCustomDays}
+                          onChange={(e) => setPromoCustomDays(e.target.value)}
+                          placeholder="Number of days (e.g. 14, 45, 90)"
+                          className="w-36 bg-[#121110] border border-[#383027] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                        />
+                        <span className="text-xs text-[#a8a195]">Days from today</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Live Strikethrough Preview */}
+                  <div className="p-4 rounded-2xl bg-[#121110] border border-[#383027] flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                      <span className="text-[10px] text-[#dea374] font-bold uppercase tracking-wider block">
+                        Customer Storefront Preview
+                      </span>
+                      <div className="flex items-baseline gap-2 mt-0.5">
+                        <span className="text-2xl font-extrabold text-emerald-400">
+                          ${(parseFloat(promoSalePrice) || 2.99).toFixed(2)}
+                        </span>
+                        <span className="text-sm line-through text-[#8e8578] font-bold">
+                          ${(parseFloat(promoRegularPrice) || 6.99).toFixed(2)}
+                        </span>
+                        <span className="text-xs text-[#dea374]">USD</span>
+                      </div>
+                      <p className="text-[11px] text-[#8e8578] mt-0.5">
+                        Code: <span className="font-mono text-white font-bold">{promoCode || 'CHEF299'}</span> •{' '}
+                        {promoDurationType === 'lifetime'
+                          ? 'Runs for Life (No Expiration)'
+                          : `${promoDurationType === 'custom' ? promoCustomDays : promoDurationType} Days Duration`}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      {parseFloat(promoRegularPrice) > parseFloat(promoSalePrice) && (
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold">
+                          SAVE ${(parseFloat(promoRegularPrice) - parseFloat(promoSalePrice)).toFixed(2)} (
+                          {Math.round(
+                            ((parseFloat(promoRegularPrice) - parseFloat(promoSalePrice)) /
+                              parseFloat(promoRegularPrice)) *
+                              100
+                          )}
+                          % OFF)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-lg shadow-[#cf7b3e]/20"
+                  >
+                    Launch Strikethrough Promo Deal
+                  </button>
+                </form>
+              </div>
+
+              {/* Quick Info & Stats */}
+              <div className="space-y-6">
+                <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+                  <h3 className="font-serif text-sm font-bold text-white mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#dea374]" />
+                    <span>How Strikethrough Promos Work</span>
+                  </h3>
+                  <ul className="text-xs text-[#a8a195] space-y-2.5 leading-relaxed">
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#cf7b3e] mt-1.5 flex-shrink-0" />
+                      <span>
+                        <strong>Storefront Strikethrough:</strong> The card shows <strong>~$6.99~</strong> struck through with the deal price <strong>$2.99</strong>.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#cf7b3e] mt-1.5 flex-shrink-0" />
+                      <span>
+                        <strong>Expiry Timer:</strong> Shows a countdown badge (e.g. <em>30 days left</em>, <em>25 days left</em>, or <em>Runs for Life</em>).
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#cf7b3e] mt-1.5 flex-shrink-0" />
+                      <span>
+                        <strong>Checkout Sync:</strong> PayPal charge automatically adjusts to $2.99 with zero manual calculations.
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6 text-center">
+                  <div className="text-3xl font-extrabold text-[#dea374]">{promos.length}</div>
+                  <div className="text-xs text-[#a8a195] mt-1">Configured Promo Deals</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Existing Promos Table */}
+            <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 className="font-serif text-base font-bold text-white">
+                  Active &amp; Scheduled Promo Deals ({promos.length})
+                </h3>
+              </div>
+
+              {promos.length === 0 ? (
+                <div className="p-8 text-center text-xs text-[#7d756a]">
+                  No promo deals created yet. Fill out the form above to launch your first deal!
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#2b251e] text-[#8e8578]">
+                        <th className="pb-3 font-semibold">Code</th>
+                        <th className="pb-3 font-semibold">Target Book</th>
+                        <th className="pb-3 font-semibold">Strike-Through Pricing</th>
+                        <th className="pb-3 font-semibold">Duration / Validity</th>
+                        <th className="pb-3 font-semibold">Status</th>
+                        <th className="pb-3 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#221c17]">
+                      {promos.map((p) => {
+                        const isExpired = p.expiresAt && new Date(p.expiresAt).getTime() <= Date.now();
+                        const daysLeft = promoStore.getDaysRemaining(p.expiresAt);
+
+                        return (
+                          <tr key={p.id} className="text-white">
+                            <td className="py-3 font-mono font-bold text-[#dea374]">
+                              {p.code}
+                            </td>
+                            <td className="py-3 text-[#c4bcae] max-w-xs truncate">
+                              {p.bookTitle || 'All Books'}
+                            </td>
+                            <td className="py-3">
+                              <div className="flex items-baseline gap-2">
+                                <span className="line-through text-[#7d756a] font-semibold">
+                                  ${p.regularPrice.toFixed(2)}
+                                </span>
+                                <span className="font-extrabold text-emerald-400">
+                                  ${p.promoPrice.toFixed(2)} USD
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3">
+                              <span
+                                className={`text-[11px] font-semibold ${
+                                  isExpired
+                                    ? 'text-rose-400'
+                                    : p.expiresAt
+                                    ? 'text-[#dea374]'
+                                    : 'text-emerald-400'
+                                }`}
+                              >
+                                {daysLeft}
+                              </span>
+                            </td>
+                            <td className="py-3">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  !p.isActive
+                                    ? 'bg-[#25201b] text-[#777] border-[#383027]'
+                                    : isExpired
+                                    ? 'bg-rose-950/70 text-rose-300 border-rose-500/30'
+                                    : 'bg-emerald-950/70 text-emerald-300 border-emerald-500/30'
+                                }`}
+                              >
+                                {!p.isActive ? 'PAUSED' : isExpired ? 'EXPIRED' : 'ACTIVE'}
+                              </span>
+                            </td>
+                            <td className="py-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleTogglePromo(p.id)}
+                                  className="px-2 py-1 rounded-lg bg-[#221c17] hover:bg-[#302820] text-[#dea374] text-[11px] font-medium border border-[#382f25] transition-all"
+                                >
+                                  {p.isActive ? 'Pause' : 'Activate'}
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePromo(p.id)}
+                                  className="p-1 rounded-lg hover:bg-rose-950/50 text-[#777] hover:text-rose-400 transition-colors"
+                                  title="Delete Promo"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: CREATE BUNDLES */}
         {activeTab === 'bundles' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-[#181614] border border-[#2c2620] rounded-3xl p-6">

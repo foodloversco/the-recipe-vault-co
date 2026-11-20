@@ -24,7 +24,7 @@ interface BookReaderProps {
   book: Book;
   isUnlocked: boolean;
   onBack: () => void;
-  onOpenCheckout: (item: { id: string; type: 'book'; title: string; price: number }) => void;
+  onOpenCheckout: (item: { id: string; type: 'book'; title: string; price: number; originalPrice?: number }) => void;
   onUnlockSuccess: () => void;
 }
 
@@ -265,7 +265,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
               {/* PayPal Checkout Trigger Button */}
               <button
-                onClick={() => onOpenCheckout({ id: book.id, type: 'book', title: book.title, price: book.price })}
+                onClick={() => onOpenCheckout({ id: book.id, type: 'book', title: book.title, price: book.price, originalPrice: book.originalPrice })}
                 className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white shadow-lg shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-3"
               >
                 <CreditCard className="w-4 h-4" />

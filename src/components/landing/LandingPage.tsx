@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Book, Bundle } from '../../types';
 import { APP_SUBHEADING } from '../../data/initialBooks';
+import { promoStore } from '../../services/promoStore';
 import { 
   BookOpen, 
   Sparkles, 
@@ -17,7 +18,8 @@ import {
   Unlock, 
   Eye, 
   DollarSign, 
-  Layers 
+  Layers,
+  Tag
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -25,7 +27,7 @@ interface LandingPageProps {
   bundles: Bundle[];
   unlockedBookIds: Set<string>;
   onOpenReader: (slug: string) => void;
-  onOpenCheckout: (item: { id: string; type: 'book' | 'bundle'; title: string; price: number }) => void;
+  onOpenCheckout: (item: { id: string; type: 'book' | 'bundle'; title: string; price: number; originalPrice?: number }) => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -207,13 +209,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       ${featuredBook.price.toFixed(2)}
                     </span>
                     {featuredBook.originalPrice && (
-                      <span className="text-sm line-through text-[#797165]">
+                      <span className="text-base line-through text-[#8e8578] font-semibold">
                         ${featuredBook.originalPrice.toFixed(2)}
                       </span>
                     )}
                     <span className="text-xs font-semibold text-[#dea374]">USD</span>
+                    {featuredBook.originalPrice && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/40">
+                        {featuredBook.promoExpiresAt !== undefined ? promoStore.getDaysRemaining(featuredBook.promoExpiresAt) : 'LIMITED PROMO'}
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[10px] text-[#857d72]">One-time digital charge • No subscription</span>
+                  <span className="text-[10px] text-[#857d72]">One-time digital charge • Instant unlock</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2.5">
@@ -226,7 +233,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </button>
 
                   <button
-                    onClick={() => onOpenCheckout({ id: featuredBook.id, type: 'book', title: featuredBook.title, price: featuredBook.price })}
+                    onClick={() => onOpenCheckout({ id: featuredBook.id, type: 'book', title: featuredBook.title, price: featuredBook.price, originalPrice: featuredBook.originalPrice })}
                     className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-[#cf7b3e]/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <CreditCard className="w-4 h-4" />
@@ -278,7 +285,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <p className="text-[10px] text-emerald-400 font-semibold mt-1">Instant All-Volume Access</p>
 
                 <button
-                  onClick={() => onOpenCheckout({ id: primaryBundle.id, type: 'bundle', title: primaryBundle.title, price: primaryBundle.price })}
+                  onClick={() => onOpenCheckout({ id: primaryBundle.id, type: 'bundle', title: primaryBundle.title, price: primaryBundle.price, originalPrice: primaryBundle.originalPrice })}
                   className="w-full mt-3 py-3 px-5 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white font-bold text-xs sm:text-sm shadow-xl shadow-[#cf7b3e]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
                   <CreditCard className="w-4 h-4" />
@@ -358,9 +365,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {/* Footer Price & Buttons */}
                 <div className="p-5 pt-0 border-t border-[#241f1a] mt-2">
                   <div className="flex items-baseline justify-between py-2">
-                    <span className="text-lg font-extrabold text-white">
-                      ${book.price.toFixed(2)} USD
-                    </span>
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-lg font-extrabold text-white">
+                        ${book.price.toFixed(2)}
+                      </span>
+                      {book.originalPrice && (
+                        <span className="text-xs line-through text-[#8e8578] font-semibold">
+                          ${book.originalPrice.toFixed(2)}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-[#dea374] font-semibold">USD</span>
+                      {book.originalPrice && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30">
+                          {book.promoExpiresAt !== undefined ? promoStore.getDaysRemaining(book.promoExpiresAt) : 'SALE'}
+                        </span>
+                      )}
+                    </div>
                     {isUnlocked && (
                       <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                         <Unlock className="w-3 h-3" /> Unlocked
@@ -378,7 +398,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </button>
 
                     <button
-                      onClick={() => onOpenCheckout({ id: book.id, type: 'book', title: book.title, price: book.price })}
+                      onClick={() => onOpenCheckout({ id: book.id, type: 'book', title: book.title, price: book.price, originalPrice: book.originalPrice })}
                       className="py-2.5 px-3 rounded-xl bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1"
                     >
                       <CreditCard className="w-3.5 h-3.5" />

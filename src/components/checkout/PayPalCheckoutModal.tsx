@@ -4,6 +4,8 @@ import confetti from 'canvas-confetti';
 import { salesStore } from '../../services/salesStore';
 import { bookStore } from '../../services/bookStore';
 import { settingsStore } from '../../services/settingsStore';
+import { promoStore } from '../../services/promoStore';
+import { PromoCode } from '../../types';
 import { 
   X, 
   ShieldCheck, 
@@ -13,7 +15,9 @@ import {
   Lock, 
   Download, 
   BookOpen, 
-  FileCheck 
+  FileCheck,
+  Tag,
+  Check
 } from 'lucide-react';
 
 interface CheckoutItem {
@@ -21,6 +25,7 @@ interface CheckoutItem {
   type: 'book' | 'bundle';
   title: string;
   price: number;
+  originalPrice?: number;
 }
 
 interface PayPalCheckoutModalProps {
@@ -42,11 +47,37 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
   const [purchaseComplete, setPurchaseComplete] = useState<boolean>(false);
   const [generatedToken, setGeneratedToken] = useState<string>('');
   const [useInstantTestPay, setUseInstantTestPay] = useState<boolean>(false);
+  const [promoCodeInput, setPromoCodeInput] = useState<string>('');
+  const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
+  const [promoFeedback, setPromoFeedback] = useState<{ text: string; isError: boolean } | null>(null);
+  const [showPromoField, setShowPromoField] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
   const settings = settingsStore.getSettings();
   const paypalClientId = settings.paypalClientId || 'test';
+
+  const effectivePrice = appliedPromo ? appliedPromo.promoPrice : item.price;
+  const strikethroughPrice = appliedPromo ? appliedPromo.regularPrice : item.originalPrice;
+
+  const handleApplyPromo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoCodeInput.trim()) return;
+
+    const res = promoStore.validateCode(promoCodeInput, item.id);
+    if (res.valid && res.promo) {
+      setAppliedPromo(res.promo);
+      setPromoFeedback({ text: res.message, isError: false });
+    } else {
+      setPromoFeedback({ text: res.message, isError: true });
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    setPromoFeedback(null);
+  };
 
   const triggerCelebration = () => {
     confetti({
@@ -61,6 +92,10 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
     const token = `RV-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
     setGeneratedToken(token);
 
+    if (appliedPromo) {
+      promoStore.incrementUsage(appliedPromo.code);
+    }
+
     // 1. Record sale into sales store
     salesStore.recordSale({
       orderId: orderId,
@@ -70,7 +105,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
       itemType: item.type,
       itemId: item.id,
       itemTitle: item.title,
-      amount: item.price,
+      amount: effectivePrice,
       currency: 'USD',
       status: 'COMPLETED',
       unlockToken: token,
@@ -178,7 +213,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
             <div className="space-y-4">
               {/* Item Summary Box */}
               <div className="bg-[#211b15] p-3.5 rounded-2xl border border-[#352c22] flex items-center justify-between">
-                <div className="max-w-[70%]">
+                <div className="max-w-[65%]">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-[#dea374]">
                     {item.type === 'bundle' ? '3-BOOK BUNDLE' : 'DIGITAL RECIPE PACK'}
                   </span>
@@ -188,11 +223,87 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                   <p className="text-[11px] text-[#9c9388]">30 Phone-Ready Cards + Grocery Checklists</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-extrabold text-white">
-                    ${item.price.toFixed(2)}
+                  <div className="flex items-baseline justify-end gap-1.5">
+                    {strikethroughPrice && (
+                      <span className="text-sm line-through text-[#8e8578] font-semibold">
+                        ${strikethroughPrice.toFixed(2)}
+                      </span>
+                    )}
+                    <div className="text-2xl font-extrabold text-white">
+                      ${effectivePrice.toFixed(2)}
+                    </div>
                   </div>
-                  <span className="text-[10px] text-[#dea374] font-semibold">USD</span>
+                  <div className="flex items-center justify-end gap-1">
+                    <span className="text-[10px] text-[#dea374] font-semibold">USD</span>
+                    {appliedPromo && (
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                        PROMO
+                      </span>
+                    )}
+                  </div>
                 </div>
+              </div>
+
+              {/* Promo Code Input Section */}
+              <div className="bg-[#1b1714] p-3 rounded-xl border border-[#2d251d]">
+                {!showPromoField && !appliedPromo ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowPromoField(true)}
+                    className="text-xs text-[#dea374] hover:text-[#ffd700] font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>Have a promo code? Click here to apply discount</span>
+                  </button>
+                ) : (
+                  <div>
+                    {appliedPromo ? (
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-medium truncate">
+                          <Check className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">
+                            Code <strong>{appliedPromo.code}</strong> applied (${appliedPromo.promoPrice.toFixed(2)})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemovePromo}
+                          className="text-[11px] text-[#888] hover:text-white underline flex-shrink-0"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleApplyPromo} className="space-y-1.5">
+                        <div className="flex gap-1.5">
+                          <input
+                            type="text"
+                            value={promoCodeInput}
+                            onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                            placeholder="Enter Promo Code (e.g. TASTE299)"
+                            className="flex-1 bg-[#121110] border border-[#3b3227] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-[#686055] uppercase focus:outline-none focus:border-[#cf7b3e]"
+                          />
+                          <button
+                            type="submit"
+                            className="px-3 py-1.5 rounded-lg bg-[#cf7b3e] hover:bg-[#b8612b] text-white text-xs font-bold transition-all"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {promoFeedback && (
+                      <p
+                        className={`text-[11px] mt-1.5 font-medium ${
+                          promoFeedback.isError ? 'text-rose-400' : 'text-emerald-400'
+                        }`}
+                      >
+                        {promoFeedback.text}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Customer Contact Input for Token Receipt */}
@@ -230,6 +341,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                   <PayPalScriptProvider options={{ clientId: paypalClientId, currency: 'USD' }}>
                     <div className="min-h-[140px]">
                       <PayPalButtons
+                        key={`paypal-btn-${effectivePrice}`}
                         style={{ layout: 'vertical', shape: 'rect', color: 'gold' }}
                         createOrder={(_data, actions) => {
                           return actions.order.create({
@@ -239,7 +351,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                                 description: item.title,
                                 amount: {
                                   currency_code: 'USD',
-                                  value: item.price.toFixed(2),
+                                  value: effectivePrice.toFixed(2),
                                 },
                               },
                             ],
@@ -275,7 +387,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                         className="h-5 rounded" 
                       />
                       <span>
-                        {isProcessing ? 'Processing Payment...' : `Pay $${item.price.toFixed(2)} with PayPal`}
+                        {isProcessing ? 'Processing Payment...' : `Pay $${effectivePrice.toFixed(2)} with PayPal`}
                       </span>
                     </button>
 

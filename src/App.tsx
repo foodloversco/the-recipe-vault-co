@@ -19,7 +19,7 @@ export const App: React.FC = () => {
   const [unlockedSet, setUnlockedSet] = useState<Set<string>>(new Set());
 
   // Checkout Modal State
-  const [checkoutItem, setCheckoutItem] = useState<{ id: string; type: 'book' | 'bundle'; title: string; price: number } | null>(null);
+  const [checkoutItem, setCheckoutItem] = useState<{ id: string; type: 'book' | 'bundle'; title: string; price: number; originalPrice?: number } | null>(null);
 
   useEffect(() => {
     refreshData();
@@ -100,7 +100,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleOpenCheckout = (item: { id: string; type: 'book' | 'bundle'; title: string; price: number }) => {
+  const handleOpenCheckout = (item: { id: string; type: 'book' | 'bundle'; title: string; price: number; originalPrice?: number }) => {
     setCheckoutItem(item);
   };
 
