@@ -16,6 +16,7 @@ import { PrivacyPolicyModal } from './components/legal/PrivacyPolicyModal';
 import { TermsConditionsModal } from './components/legal/TermsConditionsModal';
 import { CookingTimerModal } from './components/timer/CookingTimerModal';
 import { TimerFloatingWidget } from './components/timer/TimerFloatingWidget';
+import { AppInstallPrompt } from './components/common/AppInstallPrompt';
 import { MessageCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -312,6 +313,9 @@ export const App: React.FC = () => {
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
       />
+
+      {/* 10-Second Web App Download & Install Prompt */}
+      <AppInstallPrompt />
 
       {/* Global Braai & Oven Cooking Timer (runs across landing, groceries, reader, etc.) */}
       {currentView !== 'reader' && (

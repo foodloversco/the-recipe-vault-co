@@ -131,40 +131,6 @@ Tap below to unlock all 30 recipes + grocery lists instantly for $1!`,
         chefTip: 'Never pierce boerewors skin with a fork while grilling! Let the rich spiced juices stay inside the casing for tender succulence.'
       }
     ]
-  },
-  {
-    id: 'vault-vol-02',
-    slug: 'monthly-weekend-feasts-4-saturdays-4-sundays',
-    title: 'Monthly Weekend Feasts: 4 Saturdays & 4 Sundays',
-    subtitle: 'A Full Course Planned for 4 Saturdays and 4 Sundays',
-    tagline: '8 Complete Weekend Courses • 30 Seasonal Recipes • Step-by-Step Grocery Runs',
-    description: `A full course planned for 4 Saturdays and 4 Sundays. Features complete step-by-step master menus, fireside mains, traditional Sunday slow roasts, paired farm sides, and cozy weekend desserts with 30 phone-ready recipes and categorized aisle grocery runs.`,
-    coverImage: '/assets/images/south-africa-braai-cover.jpg',
-    price: 1.00,
-    originalPrice: 14.99,
-    soldCount: 0,
-    likesCount: 0,
-    recipeCount: 30,
-    previewPagesAllowed: 5,
-    category: 'Monthly Recipes',
-    tags: ['Monthly Recipes', 'Weekend Feasts', '4 Saturdays & 4 Sundays', 'Phone-Ready', 'Grocery Checklists'],
-    isFeatured: false,
-    pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_1.pdf',
-    pdfFileName: 'Monthly_Weekend_Feasts_4_Saturdays_4_Sundays.pdf',
-    pdfFileSize: '15.2 MB',
-    createdAt: '2026-11-20T18:00:00.000Z',
-    pages: [
-      {
-        id: 'mv2-p1',
-        pageNumber: 1,
-        title: 'Monthly Weekend Feasts: 4 Saturdays & 4 Sundays',
-        subtitle: '8 Complete Weekend Feasts • 4 Saturdays & 4 Sundays',
-        category: 'Cover',
-        isCover: true,
-        image: '/assets/images/south-africa-braai-cover.jpg',
-        chefTip: 'Full course planned for 4 Saturdays and 4 Sundays. Flip horizontally to preview the first 5 pages free.',
-      }
-    ]
   }
 ];
 

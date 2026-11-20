@@ -330,7 +330,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         createdAt: new Date().toISOString(),
       };
 
-      bookStore.saveBook(newBook);
+      await bookStore.saveBook(newBook);
       refreshData();
       setIsUploading(false);
       setUploadSuccessMsg(`Successfully created book "${title}" with 9:16 full cover & cloud sync!`);

@@ -26,6 +26,7 @@ class BookStore {
       'authentic-heritage-braai-masterclass',
       'timeless-hearth-comfort-classics',
       'global-street-food-spice-trails',
+      'monthly-weekend-feasts-4-saturdays-4-sundays',
     ]);
     const LEGACY_SAMPLE_IDS = new Set(['vault-vol-02', 'vault-vol-03']);
     const LEGACY_BUNDLE_IDS = new Set(['bundle-master-culinary-library']);
@@ -40,7 +41,7 @@ class BookStore {
         );
         if (cleaned.length > 0) {
           this.books = cleaned.map((b) => {
-            if (b.slug === 'south-africa-braai-heritage') {
+            if (b.slug === 'south-africa-braai-heritage' || b.id === 'vault-vol-01') {
               return {
                 ...b,
                 title: 'South African Braai & Heritage Series 1',
@@ -51,20 +52,31 @@ class BookStore {
                 pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_1.pdf',
                 pdfFileName: 'South_African_Braai_Heritage_Series_1.pdf',
                 soldCount: typeof b.soldCount === 'number' && b.soldCount < 40 ? b.soldCount : 0,
-                likesCount: typeof b.likesCount === 'number' && b.likesCount < 50 ? b.likesCount : 0,
+                likesCount: 0,
               };
             }
             return {
               ...b,
-              likesCount: typeof b.likesCount === 'number' && b.likesCount < 50 ? b.likesCount : 0,
+              likesCount: 0,
             };
           });
         } else {
           this.books = [...INITIAL_BOOKS];
         }
+
+        // Ensure all default INITIAL_BOOKS exist in this.books
+        INITIAL_BOOKS.forEach((initBook) => {
+          const exists = this.books.some(
+            (b) => b.id === initBook.id || b.slug === initBook.slug
+          );
+          if (!exists) {
+            this.books.push({ ...initBook, likesCount: 0 });
+          }
+        });
+
         this.saveBooksToStorage();
       } else {
-        this.books = [...INITIAL_BOOKS];
+        this.books = INITIAL_BOOKS.map((b) => ({ ...b, likesCount: 0 }));
         this.saveBooksToStorage();
       }
 
@@ -75,17 +87,18 @@ class BookStore {
           idbBooks.forEach((idbBook) => {
             const exists = this.books.some((b) => b.id === idbBook.id);
             if (!exists) {
-              this.books.push(idbBook);
+              this.books.push({ ...idbBook, likesCount: 0 });
               updated = true;
             } else {
               const idx = this.books.findIndex((b) => b.id === idbBook.id);
-              if (idx >= 0 && idbBook.pdfFileUrl && !idbBook.pdfFileUrl.startsWith('indexeddb://')) {
-                this.books[idx] = { ...this.books[idx], ...idbBook };
+              if (idx >= 0) {
+                this.books[idx] = { ...this.books[idx], ...idbBook, likesCount: 0 };
                 updated = true;
               }
             }
           });
           if (updated) {
+            this.saveBooksToStorage();
             this.notifyListeners();
           }
         }
@@ -160,7 +173,20 @@ class BookStore {
 
   private saveBooksToStorage() {
     try {
-      localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify(this.books));
+      const sanitized = this.books.map((b) => {
+        const isDataPdf = b.pdfFileUrl && b.pdfFileUrl.startsWith('data:');
+        return {
+          ...b,
+          pdfFileUrl: isDataPdf ? `indexeddb://${b.id}` : b.pdfFileUrl,
+          pages: (b.pages || []).map((p) => ({
+            ...p,
+            image: p.image && p.image.length > 50000 && p.image.startsWith('data:')
+              ? (b.coverImage || '')
+              : p.image,
+          })),
+        };
+      });
+      localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify(sanitized));
     } catch (e) {
       console.warn('Could not persist books to localStorage (quota?):', e);
     }
@@ -195,17 +221,26 @@ class BookStore {
     return this.books.find((b) => b.slug === slug || b.id === slug);
   }
 
-  public saveBook(book: Book): void {
+  public async saveBook(book: Book): Promise<void> {
     const index = this.books.findIndex((b) => b.id === book.id);
     if (index >= 0) {
       this.books[index] = book;
     } else {
       this.books.unshift(book);
     }
+
+    // 1. Save directly to IndexedDB (virtually unlimited GBs, handles large PDFs/images safely)
+    try {
+      await indexedDbService.saveBook(book);
+    } catch (err) {
+      console.warn('IndexedDB save failed in bookStore:', err);
+    }
+
+    // 2. Save sanitized representation to localStorage
     this.saveBooksToStorage();
     this.notifyListeners();
 
-    // Sync to Cloudflare R2 cloud so live mode and dev mode always reflect the change
+    // 3. Sync to Cloudflare R2 cloud so live mode and dev mode always reflect the change
     storageService.syncBooksManifestToCloud(this.books).catch(() => {});
   }
 
@@ -258,6 +293,11 @@ class BookStore {
     this.books = this.books.filter((b) => b.id !== id);
     this.favoriteBookIds.delete(id);
     this.favoriteRecipes = this.favoriteRecipes.filter((r) => r.bookId !== id);
+    try {
+      await indexedDbService.deleteBook(id);
+    } catch (err) {
+      console.warn('IndexedDB deleteBook failed:', err);
+    }
     this.saveBooksToStorage();
     this.saveFavoritesToStorage();
     this.notifyListeners();
