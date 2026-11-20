@@ -31,6 +31,30 @@ import {
   Sparkles
 } from 'lucide-react';
 
+const WhatsAppIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.33C9.35 7.33 9.06 7.4 8.81 7.67C8.56 7.94 7.86 8.6 7.86 9.94C7.86 11.28 8.84 12.57 8.98 12.75C9.11 12.94 10.9 15.68 13.64 16.86C14.29 17.14 14.8 17.31 15.2 17.44C15.85 17.65 16.44 17.62 16.91 17.55C17.43 17.47 18.52 16.89 18.75 16.25C18.98 15.61 18.98 15.06 18.91 14.95C18.84 14.84 18.66 14.77 18.39 14.64C18.12 14.5 16.8 13.85 16.55 13.76C16.31 13.67 16.13 13.62 15.95 13.89C15.77 14.17 15.26 14.77 15.11 14.95C14.95 15.13 14.8 15.15 14.53 15.01C14.26 14.88 13.39 14.59 12.35 13.67C11.55 12.95 11 12.07 10.85 11.8C10.7 11.53 10.83 11.39 10.97 11.25C11.09 11.13 11.24 10.94 11.38 10.78C11.52 10.61 11.56 10.49 11.65 10.31C11.75 10.13 11.7 9.97 11.63 9.83C11.56 9.7 11.05 8.44 10.83 7.92C10.62 7.42 10.4 7.48 10.24 7.47C10.09 7.46 9.91 7.46 9.73 7.46" />
+  </svg>
+);
+
+const FacebookIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const InstagramIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
+
+const TikTokIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/>
+  </svg>
+);
+
 interface BookReaderProps {
   book: Book;
   isUnlocked: boolean;
@@ -99,6 +123,26 @@ export const BookReader: React.FC<BookReaderProps> = ({
     }
   });
   const [bonusShareSuccess, setBonusShareSuccess] = useState<string | null>(null);
+
+  // 1 platform per book lock & 6-second anti-fraud timer states
+  const [sharedPlatform, setSharedPlatform] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(`rv_shared_platform_${book.id}`);
+    } catch {
+      return null;
+    }
+  });
+  const [sharingPlatformName, setSharingPlatformName] = useState<string | null>(null);
+  const [shareCountdown, setShareCountdown] = useState<number>(0);
+  const [isVerifyingShare, setIsVerifyingShare] = useState<boolean>(false);
+  const shareTimerRef = useRef<any>(null);
+  const shareStartTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (shareTimerRef.current) clearInterval(shareTimerRef.current);
+    };
+  }, []);
 
   const basePreviewLimit = book.previewPagesAllowed || 5; // 5 pages free initially
   const bonusPagesCount = hasSharedForBonus ? 4 : 0; // +4 pages if shared
@@ -315,42 +359,71 @@ export const BookReader: React.FC<BookReaderProps> = ({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  // Viral Feature: Share on Page 6 to unlock the next 4 pages (Pages 6, 7, 8 & 9)
-  const handleShareToUnlockBonus = async () => {
-    const shareUrl = `${window.location.origin}${window.location.pathname}?book=${book.slug}`;
-    const shareTitle = `${book.title} - The Recipe Vault Co.`;
-    const shareText = `Check out ${book.title}! Read free recipes and get the complete digital collection:`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          try {
-            await navigator.clipboard.writeText(shareUrl);
-          } catch {}
-        }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-      } catch {}
+  // Viral Feature: Share on Page 6 via WhatsApp, Facebook, Instagram or TikTok
+  // Requirements:
+  // 1. Must be away/wait at least 6 seconds before unlocking
+  // 2. Can only use one platform per book
+  // 3. Shares book image preview + message from friend
+  const handlePlatformShare = (platformKey: 'whatsapp' | 'facebook' | 'instagram' | 'tiktok', platformTitle: string) => {
+    const lockedPlatform = localStorage.getItem(`rv_shared_platform_${book.id}`);
+    if (lockedPlatform && lockedPlatform !== platformKey) {
+      alert(`You can only use 1 platform per book. This book was already shared with ${lockedPlatform.toUpperCase()}.`);
+      return;
     }
 
-    try {
-      localStorage.setItem(`rv_shared_bonus_${book.id}`, 'true');
-    } catch {}
-    setHasSharedForBonus(true);
-    setBonusShareSuccess('🎉 4 Bonus Pages Unlocked! You can now flip through Pages 6 to 9.');
-    playPageFlipSound();
+    const shareUrl = `${window.location.origin}/?book=${book.slug}&from=friend`;
+    const friendMessage = `Hey! A friend shared this awesome cookbook with you: "${book.title}" on The Recipe Vault Co. 🔥 Check out the 30 recipes, 108 phone-ready pages, and free preview here: ${shareUrl}`;
 
-    setTimeout(() => {
-      setBonusShareSuccess(null);
-    }, 4500);
+    // Open platform in new window
+    if (platformKey === 'whatsapp') {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(friendMessage)}`, '_blank');
+    } else if (platformKey === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(friendMessage)}`, '_blank');
+    } else if (platformKey === 'instagram') {
+      try {
+        navigator.clipboard.writeText(friendMessage);
+      } catch {}
+      window.open('https://www.instagram.com/', '_blank');
+    } else if (platformKey === 'tiktok') {
+      try {
+        navigator.clipboard.writeText(friendMessage);
+      } catch {}
+      window.open('https://www.tiktok.com/', '_blank');
+    }
+
+    // Start 6-second timer: user must be away or wait at least 6 seconds before unlocking
+    setSharingPlatformName(platformTitle);
+    setIsVerifyingShare(true);
+    setShareCountdown(6);
+    shareStartTimeRef.current = Date.now();
+
+    if (shareTimerRef.current) clearInterval(shareTimerRef.current);
+
+    shareTimerRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - shareStartTimeRef.current) / 1000);
+      const remaining = Math.max(0, 6 - elapsed);
+      setShareCountdown(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(shareTimerRef.current);
+        shareTimerRef.current = null;
+        setIsVerifyingShare(false);
+
+        try {
+          localStorage.setItem(`rv_shared_bonus_${book.id}`, 'true');
+          localStorage.setItem(`rv_shared_platform_${book.id}`, platformKey);
+        } catch {}
+
+        setSharedPlatform(platformKey);
+        setHasSharedForBonus(true);
+        setBonusShareSuccess(`🎉 Share verified on ${platformTitle}! 4 Bonus Pages Unlocked (Pages 6 to 9).`);
+        playPageFlipSound();
+
+        setTimeout(() => {
+          setBonusShareSuccess(null);
+        }, 4500);
+      }
+    }, 500);
   };
 
   const handlePrint = () => {
@@ -616,47 +689,121 @@ export const BookReader: React.FC<BookReaderProps> = ({
           {/* Main Active Page Area */}
           {isPageLocked ? (
             /* Paywall & Viral Bonus Unlock Stage */
-            <div className="h-full relative flex flex-col items-center justify-center text-center p-5 bg-gradient-to-b from-[#211a14] via-[#1a1612] to-[#12100e]">
-              {/* Blurred PDF Page Preview Behind Paywall */}
+            <div className="h-full relative flex flex-col items-center justify-center text-center p-4 sm:p-5 bg-gradient-to-b from-[#211a14] via-[#1a1612] to-[#12100e]">
+              {/* Faded-Out Teaser Recipe Page Behind Paywall */}
               {activePdfSlideUrl && (
-                <img
-                  src={activePdfSlideUrl}
-                  alt="Locked PDF Page"
-                  className="absolute inset-0 w-full h-full object-cover opacity-15 blur-md pointer-events-none"
-                />
+                <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none select-none">
+                  <img
+                    src={activePdfSlideUrl}
+                    alt="Faded Teaser Page"
+                    className="w-full h-full object-contain filter blur-[7px] opacity-25 scale-95 transition-all duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#0e0c0a]/80 via-[#14110e]/85 to-[#0e0c0a]/95 backdrop-blur-[2px]" />
+                </div>
               )}
 
               <div className="relative z-10 flex flex-col items-center max-w-xs">
                 {!hasSharedForBonus ? (
                   /* Option A (Page 6 reached, initial 5 pages done): Share to unlock next 4 pages for FREE! */
                   <>
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-[#cf7b3e]/30 border-2 border-amber-500 flex items-center justify-center mb-3 text-amber-400 shadow-lg shadow-amber-900/30">
-                      <Gift className="w-7 h-7 text-amber-400 animate-bounce" />
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-[#cf7b3e]/30 border-2 border-amber-500 flex items-center justify-center mb-1 text-amber-400 shadow-lg shadow-amber-900/30">
+                      <Gift className="w-6 h-6 text-amber-400 animate-bounce" />
                     </div>
 
-                    <span className="text-[10px] font-bold tracking-widest uppercase text-amber-400 mb-1">
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-amber-400 mb-0.5">
                       FREE BONUS RECIPES UNLOCK
                     </span>
 
-                    <h3 className="font-serif text-lg sm:text-xl font-bold text-white mb-1.5 leading-tight">
+                    <h3 className="font-serif text-base sm:text-lg font-bold text-white mb-1 leading-tight">
                       Unlock the Next 4 Pages Free!
                     </h3>
 
-                    <p className="text-xs text-[#b8b0a5] mb-3 leading-relaxed">
-                      You’ve finished the first 5 free pages. Share this collection to immediately unlock Pages 6, 7, 8 &amp; 9 with full recipe instructions!
+                    <p className="text-[11px] text-[#b8b0a5] mb-1.5 leading-relaxed">
+                      Choose 1 platform to share with friends. After a 6-second verification, Pages 6, 7, 8 &amp; 9 unlock immediately!
                     </p>
 
-                    {/* Viral Primary Action: Share to unlock 4 pages */}
-                    <button
-                      type="button"
-                      onClick={handleShareToUnlockBonus}
-                      className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-amber-600 to-[#cf7b3e] text-white shadow-xl shadow-amber-900/40 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 mb-2"
-                    >
-                      <Share2 className="w-4 h-4 text-white" />
-                      <span>Share to Unlock Next 4 Pages (Free)</span>
-                    </button>
+                    {/* 6-Second Verification Countdown Screen */}
+                    {isVerifyingShare ? (
+                      <div className="w-full bg-[#1e1915] p-3.5 rounded-2xl border-2 border-amber-500/60 shadow-2xl flex flex-col items-center text-center my-2 animate-pulse">
+                        <div className="w-11 h-11 rounded-full border-3 border-amber-400 border-t-transparent animate-spin flex items-center justify-center mb-1.5">
+                          <span className="text-xs font-bold text-amber-300 not-italic">{shareCountdown}s</span>
+                        </div>
+                        <span className="text-xs font-bold text-amber-300">
+                          Verifying Share on {sharingPlatformName}...
+                        </span>
+                        <p className="text-[10px] text-[#c2bcaf] mt-1 leading-snug">
+                          Please complete your share. Unlocking the next 4 recipes in <strong>{shareCountdown} seconds</strong>...
+                        </p>
+                        <div className="w-full bg-[#2c241c] h-1.5 rounded-full mt-2.5 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-amber-500 to-[#cf7b3e] h-full transition-all duration-500" 
+                            style={{ width: `${((6 - shareCountdown) / 6) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* 4 Social Share Buttons (WhatsApp, Facebook, Instagram, TikTok) */}
+                        <div className="grid grid-cols-2 gap-2 w-full my-1.5">
+                          {/* WhatsApp */}
+                          <button
+                            type="button"
+                            onClick={() => handlePlatformShare('whatsapp', 'WhatsApp')}
+                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                          >
+                            <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">WhatsApp</span>
+                          </button>
 
-                    <div className="w-full flex items-center gap-2 my-2 text-[9px] text-[#6e665d] uppercase tracking-wider font-semibold">
+                          {/* Facebook */}
+                          <button
+                            type="button"
+                            onClick={() => handlePlatformShare('facebook', 'Facebook')}
+                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-[#1877F2] hover:bg-[#1464cc] text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                          >
+                            <FacebookIcon className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">Facebook</span>
+                          </button>
+
+                          {/* Instagram */}
+                          <button
+                            type="button"
+                            onClick={() => handlePlatformShare('instagram', 'Instagram')}
+                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:brightness-110 text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                          >
+                            <InstagramIcon className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">Instagram</span>
+                          </button>
+
+                          {/* TikTok */}
+                          <button
+                            type="button"
+                            onClick={() => handlePlatformShare('tiktok', 'TikTok')}
+                            className="py-2 px-2.5 rounded-xl font-bold text-xs bg-black hover:bg-[#141414] text-white border border-[#25F4EE]/60 hover:border-[#FE2C55] shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 truncate"
+                          >
+                            <TikTokIcon className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">TikTok</span>
+                          </button>
+                        </div>
+
+                        {/* Message preview from friend */}
+                        <div className="bg-[#191512] border border-[#332a21] rounded-xl p-2 my-1 text-left w-full">
+                          <div className="flex items-center gap-1 text-[9px] text-[#dea374] font-semibold mb-0.5">
+                            <Sparkles className="w-3 h-3 flex-shrink-0" />
+                            <span>Message shared with book cover &amp; site:</span>
+                          </div>
+                          <p className="text-[9px] text-[#b8b0a4] italic leading-tight bg-[#12100e] p-1.5 rounded-lg border border-[#26201a]">
+                            "Hey! A friend shared this awesome cookbook with you: <strong>{book.title}</strong> on The Recipe Vault Co. 🔥 Check out the 30 recipes, 108 pages &amp; free preview here!"
+                          </p>
+                          <div className="flex items-center justify-between text-[8px] text-[#797166] mt-1">
+                            <span>✓ 1 platform per book</span>
+                            <span>• 6-second verification</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="w-full flex items-center gap-2 my-1 text-[9px] text-[#6e665d] uppercase tracking-wider font-semibold">
                       <div className="flex-1 h-[1px] bg-[#2a241e]" />
                       <span>Or Get Full 108 Pages</span>
                       <div className="flex-1 h-[1px] bg-[#2a241e]" />
@@ -672,7 +819,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
                           originalPrice: book.originalPrice,
                         })
                       }
-                      className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#241d17] hover:bg-[#30271f] text-[#dea374] border border-[#3f3428] transition-all flex items-center justify-center gap-1.5 mb-2"
+                      className="w-full py-2 px-3 rounded-xl font-bold text-xs bg-[#241d17] hover:bg-[#30271f] text-[#dea374] border border-[#3f3428] transition-all flex items-center justify-center gap-1.5 mb-1"
                     >
                       <CreditCard className="w-3.5 h-3.5" />
                       <span>Buy Full Book &amp; PDF (${book.price.toFixed(2)})</span>
@@ -752,7 +899,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
                 <button
                   onClick={() => setCurrentPageIndex(0)}
-                  className="mt-2.5 text-[11px] text-[#dea374] hover:text-white underline"
+                  className="mt-2 text-[11px] text-[#dea374] hover:text-white underline"
                 >
                   ← Flip Back to Page 1 Cover
                 </button>
@@ -765,7 +912,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
               {isCurrentPageBonus && (
                 <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 bg-amber-500/25 backdrop-blur-md border border-amber-500/60 text-amber-200 text-[10px] font-bold px-3 py-0.5 rounded-full shadow-lg flex items-center gap-1.5 pointer-events-none">
                   <Sparkles className="w-3 h-3 text-amber-300" />
-                  <span>Bonus Page {currentPageNumber} of 9 (Unlocked via Share)</span>
+                  <span>Bonus Page {currentPageNumber} of 9 (Unlocked via {sharedPlatform ? sharedPlatform.toUpperCase() : 'Share'})</span>
                 </div>
               )}
 
