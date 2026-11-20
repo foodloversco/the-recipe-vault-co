@@ -53,7 +53,10 @@ class BookStore {
                 likesCount: b.likesCount !== undefined ? b.likesCount : 191,
               };
             }
-            return b;
+            return {
+              ...b,
+              likesCount: b.likesCount !== undefined ? b.likesCount : 0,
+            };
           });
         } else {
           this.books = [...INITIAL_BOOKS];
@@ -318,8 +321,9 @@ class BookStore {
 
     const target = this.books.find((b) => b.id === bookId || b.slug === bookId);
     if (target) {
-      const currentLikes = target.likesCount !== undefined ? target.likesCount : 191;
-      target.likesCount = isFav ? currentLikes + 1 : Math.max(191, currentLikes - 1);
+      const baseLikes = target.slug === 'south-africa-braai-heritage' ? 191 : 0;
+      const currentLikes = target.likesCount !== undefined ? target.likesCount : baseLikes;
+      target.likesCount = isFav ? currentLikes + 1 : Math.max(baseLikes, currentLikes - 1);
       this.saveBooksToStorage();
     }
 

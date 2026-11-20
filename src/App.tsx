@@ -14,6 +14,8 @@ import { MyVaultPage } from './components/library/MyVaultPage';
 import { ContactSupportPage } from './components/support/ContactSupportPage';
 import { PrivacyPolicyModal } from './components/legal/PrivacyPolicyModal';
 import { TermsConditionsModal } from './components/legal/TermsConditionsModal';
+import { CookingTimerModal } from './components/timer/CookingTimerModal';
+import { TimerFloatingWidget } from './components/timer/TimerFloatingWidget';
 import { MessageCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -26,6 +28,7 @@ export const App: React.FC = () => {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [unlockedSet, setUnlockedSet] = useState<Set<string>>(new Set());
   const [favoritesCount, setFavoritesCount] = useState<number>(0);
+  const [showGlobalTimerModal, setShowGlobalTimerModal] = useState<boolean>(false);
 
   // Checkout Modal State
   const [checkoutItem, setCheckoutItem] = useState<{
@@ -53,11 +56,13 @@ export const App: React.FC = () => {
 
     refreshData();
 
-    // Check URL parameters for direct book links: ?book=slug or ?view=admin/paid/favorites/groceries
+    // Check URL parameters & pathname for direct navigation: /admin, ?book=slug, or ?view=admin/paid/favorites/groceries
+    const pathname = window.location.pathname.toLowerCase();
+    const isPathAdmin = pathname === '/admin' || pathname === '/admin/' || pathname.endsWith('/admin');
     const bookParam = urlParams.get('book');
     const viewParam = urlParams.get('view');
 
-    if (viewParam === 'admin') {
+    if (viewParam === 'admin' || isPathAdmin) {
       setCurrentView('admin');
     } else if (viewParam === 'paid') {
       setCurrentView('paid');
@@ -306,6 +311,17 @@ export const App: React.FC = () => {
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
       />
+
+      {/* Global Braai & Oven Cooking Timer (runs across landing, groceries, reader, etc.) */}
+      {currentView !== 'reader' && (
+        <>
+          <TimerFloatingWidget onOpenTimerModal={() => setShowGlobalTimerModal(true)} />
+          <CookingTimerModal
+            isOpen={showGlobalTimerModal}
+            onClose={() => setShowGlobalTimerModal(false)}
+          />
+        </>
+      )}
     </div>
   );
 };

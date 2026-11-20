@@ -5,6 +5,9 @@ import { reviewStore } from '../../services/reviewStore';
 import { loadPdfDocument, renderSinglePdfPage } from '../../utils/pdfPageExtractor';
 import { BookReviewsModal } from '../reviews/BookReviewsModal';
 import { GroceryChecklistModal } from '../grocery/GroceryChecklistModal';
+import { CookingTimerModal } from '../timer/CookingTimerModal';
+import { TimerFloatingWidget } from '../timer/TimerFloatingWidget';
+import { wakeLockService } from '../../services/wakeLockService';
 import { getBookTableOfContents, ChapterTOCItem } from '../../data/tableOfContentsData';
 import {
   ChevronLeft,
@@ -33,7 +36,11 @@ import {
   Sparkles,
   ShoppingBag,
   Search,
-  Check
+  Check,
+  Menu,
+  Sun,
+  Moon,
+  BellRing
 } from 'lucide-react';
 
 const WhatsAppIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
@@ -121,9 +128,19 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
   // Share to unlock next 4 bonus pages mechanism (Pages 1-5 free -> Share on P.6 -> Pages 6-9 unlocked -> Paywall on P.10)
   const [showGroceryModal, setShowGroceryModal] = useState<boolean>(false);
+  const [showTimerModal, setShowTimerModal] = useState<boolean>(false);
+  const [isWakeLockActive, setIsWakeLockActive] = useState<boolean>(() => wakeLockService.isActive());
   const [tocActiveTab, setTocActiveTab] = useState<'chapters' | 'grid'>('chapters');
   const [tocSearchQuery, setTocSearchQuery] = useState<string>('');
   const bookTocItems = getBookTableOfContents(book.slug);
+
+  useEffect(() => {
+    return wakeLockService.subscribe((active) => setIsWakeLockActive(active));
+  }, []);
+
+  const handleToggleWakeLock = async () => {
+    await wakeLockService.toggle();
+  };
 
   const handleJumpToPage = (targetIdx: number) => {
     if (targetIdx < 0 || targetIdx >= totalPages) return;
@@ -483,13 +500,24 @@ export const BookReader: React.FC<BookReaderProps> = ({
     >
       {/* Top Floating Control Bar */}
       <div className="w-full max-w-4xl flex items-center justify-between pb-3 px-2 border-b border-[#25221e] mb-3">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-xs sm:text-sm text-[#c2bcaf] hover:text-white bg-[#1c1a18] px-3 py-1.5 rounded-full border border-[#302c27] transition-all"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Catalog</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-xs sm:text-sm text-[#c2bcaf] hover:text-white bg-[#1c1a18] px-3 py-1.5 rounded-full border border-[#302c27] transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Catalog</span>
+          </button>
+
+          <button
+            onClick={() => setShowToc(!showToc)}
+            className="flex items-center gap-1.5 text-xs text-amber-300 hover:text-white bg-[#221c17] hover:bg-[#2e251e] px-3 py-1.5 rounded-full border border-amber-500/40 shadow-sm transition-all font-semibold"
+            title="Browse Chapters & Recipes (Table of Contents)"
+          >
+            <Menu className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">Contents</span>
+          </button>
+        </div>
 
         {/* Title & Preview Indicator */}
         <div className="text-center px-2 truncate max-w-[190px] sm:max-w-md">
@@ -573,6 +601,28 @@ export const BookReader: React.FC<BookReaderProps> = ({
           </button>
 
           <button
+            onClick={() => setShowTimerModal(true)}
+            title="Braai & Oven Cooking Timer (Chime & Vibration)"
+            className="p-2 rounded-full bg-[#1c1a18] border border-amber-500/40 text-amber-300 hover:bg-amber-950/60 hover:text-amber-200 transition-all flex items-center gap-1"
+          >
+            <Clock className="w-4 h-4 text-amber-400" />
+            <span className="text-[10px] font-bold hidden md:inline">Timer</span>
+          </button>
+
+          <button
+            onClick={handleToggleWakeLock}
+            title={isWakeLockActive ? 'Screen Awake: ACTIVE (Screen will not go black)' : 'Keep Screen Awake while cooking'}
+            className={`p-2 rounded-full border transition-all flex items-center gap-1 ${
+              isWakeLockActive
+                ? 'bg-amber-600 text-white border-amber-400 shadow-md shadow-amber-900/40'
+                : 'bg-[#1c1a18] border-[#302c27] text-[#8e8578] hover:text-white hover:bg-[#2b2722]'
+            }`}
+          >
+            {isWakeLockActive ? <Sun className="w-4 h-4 text-white animate-pulse" /> : <Moon className="w-4 h-4 text-[#888]" />}
+            <span className="text-[10px] font-bold hidden md:inline">{isWakeLockActive ? 'Awake ON' : 'Awake'}</span>
+          </button>
+
+          <button
             onClick={() => setShowToc(!showToc)}
             title="Jump to Page / Table of Contents"
             className="p-2 rounded-full bg-[#1c1a18] border border-[#302c27] text-[#cf7b3e] hover:bg-[#2b2722]"
@@ -646,10 +696,50 @@ export const BookReader: React.FC<BookReaderProps> = ({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Top Phone Bezel Bar */}
-        <div className="h-6 w-full bg-[#121110] flex items-center justify-between px-6 text-[10px] text-[#706a62] select-none border-b border-[#211f1c] z-30">
-          <span>3D FLIP BOOK</span>
-          <div className="w-12 h-1.5 bg-[#25221e] rounded-full"></div>
+        {/* Top Phone Bezel Bar with 1-Click Navigation & Controls */}
+        <div className="h-8 w-full bg-[#121110] flex items-center justify-between px-3 text-[10px] select-none border-b border-[#211f1c] z-30">
+          <button
+            onClick={() => setShowToc(!showToc)}
+            className="flex items-center gap-1 text-amber-400 hover:text-amber-300 font-bold bg-[#1e1914] px-2 py-0.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+            title="Browse Chapters & Recipes (Table of Contents)"
+          >
+            <Menu className="w-3.5 h-3.5 text-amber-400" />
+            <span>Contents</span>
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowGroceryModal(true)}
+              className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold bg-[#131c15] px-2 py-0.5 rounded-lg border border-emerald-500/30 transition-all cursor-pointer"
+              title="Open Recipe Grocery Checklist"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Groceries</span>
+            </button>
+
+            <button
+              onClick={() => setShowTimerModal(true)}
+              className="flex items-center gap-1 text-amber-300 hover:text-amber-200 font-bold bg-[#1e1710] px-2 py-0.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+              title="Braai & Cooking Timer"
+            >
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Timer</span>
+            </button>
+
+            <button
+              onClick={handleToggleWakeLock}
+              className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                isWakeLockActive
+                  ? 'bg-amber-600 text-white border-amber-400'
+                  : 'bg-[#181614] text-[#8e8578] hover:text-white border-[#332b22]'
+              }`}
+              title={isWakeLockActive ? 'Screen Awake: ACTIVE (Won\'t sleep)' : 'Keep Screen Awake while cooking'}
+            >
+              <Sun className={`w-3.5 h-3.5 ${isWakeLockActive ? 'text-white' : 'text-[#777]'}`} />
+              <span>{isWakeLockActive ? 'Awake' : 'Sleep'}</span>
+            </button>
+          </div>
+
           <div className="flex items-center gap-1 font-mono text-[#dea374]">
             <span>P.{currentPageNumber}</span>
           </div>
@@ -1015,42 +1105,6 @@ export const BookReader: React.FC<BookReaderProps> = ({
                 </div>
               )}
 
-              {/* In-Book Page 3 / TOC Quick Trigger */}
-              {(currentPageNumber === 2 || currentPageNumber === 3) && (
-                <button
-                  onClick={() => setShowToc(true)}
-                  className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-amber-400/40"
-                >
-                  <List className="w-3.5 h-3.5" />
-                  <span>Click Table of Contents to Jump</span>
-                </button>
-              )}
-
-              {/* In-Book Grocery Checklist Quick Trigger on recipe pages */}
-              {currentPageNumber >= 2 && currentPageNumber <= 36 && (
-                <button
-                  onClick={() => setShowGroceryModal(true)}
-                  className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-emerald-400/40 transition-transform active:scale-95"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>
-                    {currentPageNumber >= 6 && currentPageNumber <= 35
-                      ? `🛒 Recipe Grocery Checklist (P.${currentPageNumber})`
-                      : '🛒 In-Store Grocery Checklist & Print'}
-                  </span>
-                </button>
-              )}
-
-              {/* Bottom Corner Interactive Page-Curl Hint */}
-              {currentPageIndex < totalPages - 1 && (
-                <button
-                  onClick={handleNextPage}
-                  className="absolute bottom-3 right-3 z-20 bg-gradient-to-r from-[#cf7b3e]/90 to-[#b8612b]/90 hover:brightness-110 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-xl flex items-center gap-1 border border-white/20 backdrop-blur-sm transition-transform active:scale-95"
-                >
-                  <span>{currentPageNumber === 1 ? 'Open Book (Flip to Page 2)' : 'Flip Page'}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
           ) : currentPage ? (
             /* Fallback Structured Card View if no PDF URL or cover image */
@@ -1358,6 +1412,16 @@ export const BookReader: React.FC<BookReaderProps> = ({
           onOpenCheckout={onOpenCheckout}
         />
       )}
+
+      {/* Braai & Oven Cooking Timer Modal */}
+      <CookingTimerModal
+        isOpen={showTimerModal}
+        onClose={() => setShowTimerModal(false)}
+        recipeTitle={bookTocItems.find((t) => t.pageNumber === currentPageNumber)?.recipeTitle}
+      />
+
+      {/* Persistent Floating Timer Widget (visible even if switching views/modals) */}
+      <TimerFloatingWidget onOpenTimerModal={() => setShowTimerModal(true)} />
     </div>
   );
 };

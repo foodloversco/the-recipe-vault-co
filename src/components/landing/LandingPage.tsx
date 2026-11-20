@@ -201,7 +201,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     />
                     <span>{bookStore.isBookFavorited(featuredBook.id) ? 'Liked' : 'Like'}</span>
                     <span className="text-xs font-bold text-white/90 ml-0.5">
-                      {featuredBook.likesCount ?? 191}
+                      {featuredBook.likesCount ?? (featuredBook.slug === 'south-africa-braai-heritage' ? 191 : 0)}
                     </span>
                   </button>
 
@@ -548,7 +548,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${bookStore.isBookFavorited(book.id) ? 'fill-white' : ''}`} />
                         <span>{bookStore.isBookFavorited(book.id) ? 'Liked' : 'Like'}</span>
                         <span className="text-[10px] sm:text-[11px] font-bold text-white/90 ml-0.5">
-                          {book.likesCount ?? 191}
+                          {book.likesCount ?? (book.slug === 'south-africa-braai-heritage' ? 191 : 0)}
                         </span>
                       </button>
 

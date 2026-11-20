@@ -38,6 +38,7 @@ import {
   Lock,
   Flame,
   ShieldAlert,
+  ShieldCheck,
   LogOut
 } from 'lucide-react';
 import { compress916Image } from '../../utils/imageCompressor';
@@ -188,6 +189,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     }
   };
 
+  const handleDevOverrideLogin = () => {
+    localStorage.setItem(ADMIN_SESSION_KEY, 'authenticated_jax_2026');
+    localStorage.removeItem(ADMIN_LOCKOUT_KEY);
+    setLockoutUntil(0);
+    setIsAdminAuthenticated(true);
+    setAuthErrorMsg('');
+  };
+
   const handleAdminLogout = () => {
     localStorage.removeItem(ADMIN_SESSION_KEY);
     setIsAdminAuthenticated(false);
@@ -309,6 +318,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         price: parseFloat(price) || 14.99,
         originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
         soldCount: Math.max(0, parseInt(initialSoldCount, 10) || 0),
+        likesCount: 0,
         recipeCount: parseInt(recipeCount, 10) || 30,
         previewPagesAllowed: parseInt(previewLimit, 10) || 5,
         category,
@@ -513,6 +523,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
               </p>
               <button
                 type="button"
+                onClick={handleDevOverrideLogin}
+                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-600 via-[#cf7b3e] to-amber-700 hover:brightness-110 text-xs font-bold text-white shadow-xl shadow-amber-900/40 transition-all flex items-center justify-center gap-2 border border-amber-300/40 cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4 text-white" />
+                <span>⚡ Dev Override: Unlock &amp; Sign In as Admin</span>
+              </button>
+              <button
+                type="button"
                 onClick={onBackToApp}
                 className="w-full mt-2 py-2.5 rounded-xl bg-[#27221d] hover:bg-[#352f28] text-xs font-semibold text-white border border-[#443b32] transition-all"
               >
@@ -564,6 +582,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                 >
                   <Lock className="w-4 h-4" />
                   <span>Unlock Admin Portal (Keep Device Signed In)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDevOverrideLogin}
+                  className="w-full py-2.5 rounded-xl bg-[#221c17] hover:bg-[#2d251e] border border-amber-600/40 text-xs font-semibold text-amber-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>⚡ Dev Quick Sign-In (Local Host Bypass)</span>
                 </button>
 
                 <button

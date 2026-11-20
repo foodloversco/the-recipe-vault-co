@@ -289,6 +289,16 @@ export const GroceryChecklistModal: React.FC<GroceryChecklistModalProps> = ({
           </div>
         </div>
 
+        {/* Persistent Offline Memory Notice */}
+        <div className="px-4 py-1.5 bg-[#171310] border-b border-[#2b241c] flex items-center justify-between text-[11px] text-[#9c9388] no-print">
+          <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <span>✓ Auto-saved offline</span>
+            <span className="text-[#555]">•</span>
+            <span className="text-[#a8a196]">Ticks stay saved if you lock your phone in supermarket aisles</span>
+          </span>
+          <span className="font-mono text-[10px] text-[#dea374]">Local Storage ✓</span>
+        </div>
+
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           {viewMode === 'recipe' ? (
