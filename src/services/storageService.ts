@@ -40,7 +40,7 @@ export class StorageService {
       provider: 'cloudflare-r2',
       r2AccountId: '96919865db5f5c66d503f8cbe3abc1b5',
       r2BucketName: 'recipe-vault-books',
-      r2PublicUrl: '',
+      r2PublicUrl: 'https://pub-152f26d662d94267bac96bce4bdcd35b.r2.dev',
     };
   }
 

@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   r2AccessKeyId: '',
   r2SecretAccessKey: '',
   r2BucketName: 'recipe-vault-books',
-  r2PublicUrl: '',
+  r2PublicUrl: 'https://pub-152f26d662d94267bac96bce4bdcd35b.r2.dev',
   supabaseUrl: '',
   supabaseAnonKey: '',
   supabaseBucket: 'recipe-vault-pdfs',
