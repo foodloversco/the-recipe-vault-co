@@ -21,13 +21,14 @@ export const CulinarySplashLoader: React.FC = () => {
       setProgressWidth(true);
     });
 
+    // 3-second display requested by user before smooth fadeout
     const fadeTimer = setTimeout(() => {
       setFadingOut(true);
-    }, 1300);
+    }, 2800);
 
     const unmountTimer = setTimeout(() => {
       setUnmounted(true);
-    }, 2000);
+    }, 3500);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -105,10 +106,10 @@ export const CulinarySplashLoader: React.FC = () => {
           HERITAGE CULINARY COLLECTION • EST.
         </p>
 
-        {/* Animated Gold Progress Bar */}
+        {/* Animated Gold Progress Bar (Smooth 2.8s Fill) */}
         <div className="mt-6 w-48 sm:w-56 h-[2px] bg-[#2a241e] rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-[#b8612b] via-[#dea374] to-[#ffd700] transition-all duration-[1200ms] ease-out"
+            className="h-full bg-gradient-to-r from-[#b8612b] via-[#dea374] to-[#ffd700] transition-all duration-[2800ms] ease-out"
             style={{ width: progressWidth ? '100%' : '0%' }}
           />
         </div>
