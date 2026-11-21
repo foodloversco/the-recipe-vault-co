@@ -8,12 +8,18 @@ interface TimerFloatingWidgetProps {
 
 export const TimerFloatingWidget: React.FC<TimerFloatingWidgetProps> = ({ onOpenTimerModal }) => {
   const [timerState, setTimerState] = useState<TimerState>(() => cookingTimerStore.getState());
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    return cookingTimerStore.subscribe((s) => setTimerState(s));
+    return cookingTimerStore.subscribe((s) => {
+      setTimerState(s);
+      if (s.status === 'idle') {
+        setIsDismissed(false);
+      }
+    });
   }, []);
 
-  if (timerState.status === 'idle') return null;
+  if (timerState.status === 'idle' || (isDismissed && timerState.status !== 'ringing')) return null;
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -50,6 +56,17 @@ export const TimerFloatingWidget: React.FC<TimerFloatingWidgetProps> = ({ onOpen
           >
             +2m
           </button>
+          <button
+            onClick={() => {
+              cookingTimerStore.dismissAlarm();
+              setIsDismissed(true);
+            }}
+            className="p-1.5 rounded-xl bg-black/30 hover:bg-black/50 text-white/80 hover:text-white transition-colors"
+            title="Close Alert"
+            aria-label="Close Alert"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
     );
@@ -84,19 +101,39 @@ export const TimerFloatingWidget: React.FC<TimerFloatingWidgetProps> = ({ onOpen
         </span>
       </div>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (timerState.status === 'running') {
-            cookingTimerStore.pauseTimer();
-          } else {
-            cookingTimerStore.resumeTimer();
-          }
-        }}
-        className="p-1 rounded-lg bg-[#27211b] hover:bg-[#382f27] text-white"
-      >
-        {timerState.status === 'running' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-      </button>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (timerState.status === 'running') {
+              cookingTimerStore.pauseTimer();
+            } else {
+              cookingTimerStore.resumeTimer();
+            }
+          }}
+          className="p-1.5 rounded-lg bg-[#27211b] hover:bg-[#382f27] text-white transition-all"
+          title={timerState.status === 'running' ? 'Pause timer' : 'Resume timer'}
+          aria-label={timerState.status === 'running' ? 'Pause timer' : 'Resume timer'}
+        >
+          {timerState.status === 'running' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Close & dismiss the floating pop-up widget even while timer runs (or clear it)
+            setIsDismissed(true);
+            cookingTimerStore.resetTimer();
+          }}
+          className="p-1.5 rounded-lg bg-[#27211b] hover:bg-rose-950/60 text-[#8e8578] hover:text-rose-400 transition-colors border border-transparent hover:border-rose-500/30"
+          title="Close timer pop-up"
+          aria-label="Close timer pop-up"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 };
