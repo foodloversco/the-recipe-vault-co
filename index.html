@@ -32,7 +32,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#121110] text-[#f7f5f0] antialiased selection:bg-[#cf7b3e] selection:text-white overflow-x-hidden">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant In-line Culinary Splash Loader (Exact visual match, renders in 0ms on Web & APK) -->
+      <div id="initial-splash" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#100f0e;overflow:hidden;user-select:none;">
+        <div style="position:absolute;inset:0;display:grid;grid-template-rows:58% 42%;grid-template-columns:1fr 1fr;">
+          <div style="grid-column:span 2;position:relative;overflow:hidden;border-bottom:1px solid rgba(207,123,62,0.3);">
+            <img src="/assets/images/realistic_culinary_food_photography_of_a_thick_cut_grilled_beef_rump_steak.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center;" />
+          </div>
+          <div style="position:relative;overflow:hidden;border-right:1px solid rgba(207,123,62,0.3);">
+            <img src="/assets/images/karoo_lamb_chops.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center;" />
+          </div>
+          <div style="position:relative;overflow:hidden;">
+            <img src="/assets/images/recipe-card-sample.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center;" />
+          </div>
+        </div>
+        <div style="position:absolute;inset:0;background-color:rgba(16,15,14,0.8);background-image:radial-gradient(circle at center, rgba(16,15,14,0.65) 0%, rgba(16,15,14,0.88) 70%, rgba(10,9,8,0.96) 100%);"></div>
+        <div style="position:absolute;top:16px;bottom:16px;left:16px;right:16px;border:1px solid rgba(207,123,62,0.35);pointer-events:none;"></div>
+        <div style="position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;padding:0 24px;text-align:center;">
+          <div style="padding:6px;border-radius:9999px;background-color:rgba(10,9,8,0.9);box-shadow:0 0 50px rgba(207,123,62,0.35);">
+            <div style="width:160px;height:160px;overflow:hidden;border-radius:9999px;border:2px solid rgba(222,163,116,0.8);background-color:#100f0e;">
+              <img src="/assets/images/logo.png" alt="The Recipe Vault Co." style="width:100%;height:100%;border-radius:9999px;object-fit:cover;transform:scale(1.18);" />
+            </div>
+          </div>
+          <h1 style="margin-top:24px;font-size:18px;font-weight:700;letter-spacing:0.25em;color:#dea374;text-transform:uppercase;font-family:'Cinzel', Georgia, serif;">
+            THE RECIPE VAULT CO.
+          </h1>
+          <p style="margin-top:6px;font-size:11px;letter-spacing:0.28em;color:rgba(196,188,174,0.8);text-transform:uppercase;">
+            HERITAGE CULINARY COLLECTION • EST.
+          </p>
+          <div style="margin-top:24px;width:192px;height:2px;background-color:#2a241e;border-radius:9999px;overflow:hidden;">
+            <div style="height:100%;background:linear-gradient(to right, #b8612b, #dea374, #ffd700);width:60%;animation:splashLine 2.8s ease-out forwards;"></div>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes splashLine {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

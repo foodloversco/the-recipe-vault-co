@@ -1,8 +1,11 @@
-const CACHE_NAME = 'recipe-vault-hybrid-v6';
+const CACHE_NAME = 'recipe-vault-hybrid-v7';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/assets/images/logo.png',
+  '/assets/images/realistic_culinary_food_photography_of_a_thick_cut_grilled_beef_rump_steak.png',
+  '/assets/images/karoo_lamb_chops.png',
+  '/assets/images/recipe-card-sample.png',
   '/assets/images/splash-montage.png',
 ];
 

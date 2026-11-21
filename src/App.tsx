@@ -17,7 +17,6 @@ import { TermsConditionsModal } from './components/legal/TermsConditionsModal';
 import { CookingTimerModal } from './components/timer/CookingTimerModal';
 import { TimerFloatingWidget } from './components/timer/TimerFloatingWidget';
 import { AppInstallPrompt } from './components/common/AppInstallPrompt';
-import { MessageCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin' | 'paid' | 'favorites' | 'groceries' | 'contact'>('landing');
@@ -275,22 +274,6 @@ export const App: React.FC = () => {
       {/* Footer on landing, paid, favorites, and contact */}
       {(currentView === 'landing' || currentView === 'paid' || currentView === 'favorites' || currentView === 'contact') && (
         <Footer />
-      )}
-
-      {/* Floating WhatsApp VIP Support Button (visible for buyers & users across main views) */}
-      {currentView !== 'admin' && (
-        <a
-          href="https://api.whatsapp.com/send?phone=27843441313&text=Hi%20The%20Recipe%20Vault%20Co%20Support%2C%20I%20have%20a%20question%20or%20need%20help"
-          target="_blank"
-          rel="noreferrer"
-          title="Direct WhatsApp Support (+27 84 344 1313)"
-          className="fixed bottom-4 right-4 z-40 bg-[#25D366] hover:bg-[#20ba59] text-white p-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/20 transition-all hover:scale-105 active:scale-95 group"
-        >
-          <MessageCircle className="w-5 h-5 flex-shrink-0" />
-          <span className="text-xs font-bold hidden sm:inline group-hover:inline max-w-0 sm:max-w-xs group-hover:max-w-xs overflow-hidden transition-all duration-300">
-            WhatsApp VIP Support
-          </span>
-        </a>
       )}
 
       {/* Checkout Modal */}
