@@ -131,6 +131,131 @@ Tap below to unlock all 30 recipes + grocery lists instantly for $1!`,
         chefTip: 'Never pierce boerewors skin with a fork while grilling! Let the rich spiced juices stay inside the casing for tender succulence.'
       }
     ]
+  },
+  {
+    id: 'vault-vol-02-series-2',
+    slug: 'south-african-braai-heritage-series-2',
+    title: 'South African Braai & Heritage Series 2',
+    subtitle: 'Volume 02: Fireside Feasts, Potjiekos & Coastal Smoke',
+    tagline: 'Unlock the Complete 105-Page South African Braai & Heritage: Series 2 Digital Collection for Just $1.99!',
+    description: `Level up your fireside hosting with Volume 2 of the definitive South African culinary collection. 30 brand-new iconic recipes, master butcher guides, and fireside grocery runs tailored for effortless phone reading.
+
+Inside Series 2 (Chapters 01–08):
+• 🔥 Master Fire & Smoked Meats: Smoked Pork Belly with Rooibos Glaze, Dry-Rubbed Beef Brisket, Herb Butter Ribeye Steak, Spiced Lamb Ribs (Skaapribbetjie)
+• 🍗 Skewers & Savory Birds: Karoo Game & Venison Skewers, Lemon-Herb Charcoal Chicken Wings, Spiced Duck Breast on the Coals, Sticky Sweet-Chilli Drumsticks
+• 🦞 Coastal Catches & Shellfish: Butterflied Garlic Butter Langoustines, Cast Iron Mussel Pot with White Wine & Cream, Charred Calamari Steaks, Smoked Snoek Pate
+• 🍲 Slow-Simmered Potjies: Biltong & Blue Cheese Potjie, Slow-Cooked Lamb Shank & Rosemary Potjie, Hearty Venison & Prune Potjie, Spicy Seafood Potjie
+• 🍞 Artisan Breads, Pot Bakes & Sides: Biltong & Cheddar Potbrood, Sweetcorn Fritters with Hot Honey, Charred Asparagus & Pancetta Salad, Three-Bean Sambal, Tangy Mustard Basting Glaze
+• 🍮 Fireside Sweets: Braaied Marshmallow & Peppermint Crisp Tart, Amarula Cast-Iron Pudding, Golden Koeksister Bites
+
+Tap below to unlock all 30 recipes + grocery lists instantly for $1.99!`,
+    coverImage: '/assets/images/south-africa-braai-series-2-cover.jpg',
+    price: 1.99,
+    originalPrice: 14.99,
+    soldCount: 48,
+    likesCount: 0,
+    recipeCount: 30,
+    previewPagesAllowed: 5,
+    category: 'Open-Fire & Grilling',
+    tags: ['Braai', 'Series 2', 'Open Fire', 'Heritage', 'Phone-Ready', 'Grocery Checklist'],
+    isFeatured: false,
+    pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_2.pdf',
+    pdfFileName: 'South_African_Braai_Heritage_Series_2.pdf',
+    pdfFileSize: '15.4 MB',
+    createdAt: '2026-11-20T18:00:00.000Z',
+    pages: [
+      {
+        id: 'p2-1',
+        pageNumber: 1,
+        title: 'South African Braai & Heritage Series 2',
+        subtitle: '30 Brand-New Iconic Recipes • From the Coals to the Table',
+        category: 'Cover',
+        isCover: true,
+        image: '/assets/images/south-africa-braai-series-2-cover.jpg',
+        chefTip: 'Designed for effortless single-hand reading at 9:16 phone scale. Flip horizontally like a Kindle or print any recipe card with one tap.',
+      },
+      {
+        id: 'p2-2',
+        pageNumber: 2,
+        title: 'Curated Fireside Master Checklist Vol. 2',
+        subtitle: 'Categorized One-Stop Grocery & Wood Run',
+        category: 'Checklist',
+        isChecklist: true,
+        groceryChecklist: [
+          {
+            category: 'Butcher Counter',
+            items: ['Crispy Pork Belly strips', 'Free-range Lamb Shanks', 'Dry-rubbed Beef Brisket', 'Butterflied Tiger Prawns / Langoustines']
+          },
+          {
+            category: 'Pantry & Spice Locker',
+            items: ['Rooibos Tea Bags for glaze', 'Coarse Sea Salt & Smoked Paprika', 'Amarula Cream Liqueur', 'Biltong slices & Blue Cheese wheel']
+          },
+          {
+            category: 'Fresh Produce & Herbs',
+            items: ['Fresh Rosemary & Thyme bunches', 'Sweet Baby Leeks & Red Onions', 'Garlic cloves & Green Limes', 'Fresh Coriander & Peppermint herbs']
+          },
+          {
+            category: 'Fuel & Fireside Essentials',
+            items: ['Dense Indigenous Sekelbos Hardwood', 'Cast Iron Potjie Flat-Bottom', 'Heavy-duty Grill Brush & Tongs']
+          }
+        ],
+        chefTip: 'Tip: Slow coals with sekelbos hardwood create deep caramelization and lasting embers for slow-cooked potjies and roasts.'
+      },
+      {
+        id: 'p2-3',
+        pageNumber: 3,
+        title: 'Rooibos Glazed Pork Belly on the Coals',
+        subtitle: 'Slow-Smoked Crispy Crackling with Herbal Honey Sweetness',
+        category: 'Heritage Mains',
+        prepTime: '20 mins',
+        cookTime: '90 mins',
+        servings: '6 Servings',
+        heatLevel: 'Mild 🔥',
+        image: '/assets/images/close_up_realistic_culinary_food_photography_of_crispy_caramelized_grilled_pork.png',
+        ingredients: [
+          '1.5kg bone-in pork belly, skin scored in diamond grid',
+          '3 bags strong rooibos tea brewed in 1 cup hot water',
+          '3 tbsp pure wild honey',
+          '2 tbsp Dijon mustard',
+          '1 tbsp apple cider vinegar',
+          'Coarse sea salt flakes'
+        ],
+        instructions: [
+          'Dry the scored pork skin thoroughly and rub generously with coarse sea salt flakes.',
+          'Set up indirect medium coals. Place pork belly skin-side up and braai slowly for 70 minutes.',
+          'Simmer rooibos tea, honey, Dijon mustard, and apple cider vinegar until reduced to a glossy basting syrup.',
+          'Baste meat sides generously during the final 20 minutes while pushing embers closer to crisp the crackling.'
+        ],
+        chefTip: 'Ensure pork skin is bone-dry before salting to guarantee shatteringly crisp crackling!'
+      },
+      {
+        id: 'p2-4',
+        pageNumber: 4,
+        title: 'Cast-Iron Biltong & Blue Cheese Potjie',
+        subtitle: 'Rich Creamy Slow-Simmered Comfort Food',
+        category: 'Fire Potjie',
+        prepTime: '15 mins',
+        cookTime: '45 mins',
+        servings: '6 Servings',
+        heatLevel: 'Mild 🔥',
+        image: '/assets/images/realistic_culinary_food_photography_of_an_authentic_south_african_black_three.png',
+        ingredients: [
+          '250g moist beef biltong, thinly sliced',
+          '150g mature blue cheese, crumbled',
+          '250g button mushrooms, sliced',
+          '1 large onion & 3 cloves garlic, minced',
+          '250ml fresh double thick cream',
+          'Fresh tagliatelle or warm potbrood to serve'
+        ],
+        instructions: [
+          'In a heated cast iron potjie over gentle coals, sauté onion and garlic in butter until soft.',
+          'Add sliced mushrooms and cook until golden brown.',
+          'Pour in double cream, fold in crumbled blue cheese, and simmer gently until sauce is velvety and smooth.',
+          'Remove from direct coals and fold in thin biltong slices right before serving so biltong stays tender and juicy.'
+        ],
+        chefTip: 'Never boil the biltong! Fold it into the hot cream sauce just before serving to preserve its texture and spice.'
+      }
+    ]
   }
 ];
 

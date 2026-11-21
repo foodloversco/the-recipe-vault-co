@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   supabaseUrl: '',
   supabaseAnonKey: '',
   supabaseBucket: 'recipe-vault-pdfs',
-  vercelLiveUrl: (import.meta as any).env?.VITE_VERCEL_URL || 'https://the-recipe-vault-co.vercel.app',
+  vercelLiveUrl: (import.meta as any).env?.VITE_VERCEL_URL || 'https://the-recipe-vault-co-six.vercel.app',
   hybridUpdateMode: 'both',
 };
 

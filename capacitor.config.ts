@@ -1,7 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-const liveVercelUrl = process.env.VITE_VERCEL_URL?.trim();
-
 const config: CapacitorConfig = {
   appId: 'com.therecipevault.app',
   appName: 'The Recipe Vault Co.',
@@ -9,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: false,
-    ...(liveVercelUrl ? { url: liveVercelUrl } : {}),
+    url: 'https://the-recipe-vault-co-six.vercel.app',
   },
   plugins: {
     StatusBar: {
@@ -18,7 +16,7 @@ const config: CapacitorConfig = {
       overlaysWebView: false,
     },
     SplashScreen: {
-      launchShowDuration: 1800,
+      launchShowDuration: 0,
       launchAutoHide: true,
       backgroundColor: '#100f0e',
       androidSplashResourceName: 'splash',

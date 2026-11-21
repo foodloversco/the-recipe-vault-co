@@ -28,7 +28,7 @@ class BookStore {
       'global-street-food-spice-trails',
       'monthly-weekend-feasts-4-saturdays-4-sundays',
     ]);
-    const LEGACY_SAMPLE_IDS = new Set(['vault-vol-02', 'vault-vol-03']);
+    const LEGACY_SAMPLE_IDS = new Set(['sample-vault-vol-02', 'sample-vault-vol-03']);
     const LEGACY_BUNDLE_IDS = new Set(['bundle-master-culinary-library']);
 
     try {
@@ -52,6 +52,18 @@ class BookStore {
                 pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_1.pdf',
                 pdfFileName: 'South_African_Braai_Heritage_Series_1.pdf',
                 soldCount: typeof b.soldCount === 'number' && b.soldCount < 40 ? b.soldCount : 0,
+                likesCount: 0,
+              };
+            }
+            if (b.slug === 'south-african-braai-heritage-series-2' || b.id === 'vault-vol-02-series-2' || b.id === 'vault-vol-02') {
+              return {
+                ...b,
+                id: 'vault-vol-02-series-2',
+                title: 'South African Braai & Heritage Series 2',
+                coverImage: '/assets/images/south-africa-braai-series-2-cover.jpg',
+                pdfFileUrl: '/assets/books/South_African_Braai_Heritage_Series_2.pdf',
+                pdfFileName: 'South_African_Braai_Heritage_Series_2.pdf',
+                soldCount: typeof b.soldCount === 'number' && b.soldCount > 0 ? b.soldCount : 48,
                 likesCount: 0,
               };
             }

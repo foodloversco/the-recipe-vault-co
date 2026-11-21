@@ -114,8 +114,14 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
           {books.map((book, idx) => {
             const offset = idx - activeIndex;
             const isCenter = offset === 0;
-            const isLeft = offset === -1 || (activeIndex === 0 && idx === books.length - 1);
-            const isRight = offset === 1 || (activeIndex === books.length - 1 && idx === 0);
+            const isLeft =
+              books.length > 2
+                ? offset === -1 || (activeIndex === 0 && idx === books.length - 1)
+                : offset === -1;
+            const isRight =
+              books.length > 2
+                ? offset === 1 || (activeIndex === books.length - 1 && idx === 0)
+                : offset === 1;
 
             if (!isCenter && !isLeft && !isRight) return null;
 
