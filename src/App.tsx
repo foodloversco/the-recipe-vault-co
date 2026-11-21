@@ -14,6 +14,7 @@ import { MyVaultPage } from './components/library/MyVaultPage';
 import { ContactSupportPage } from './components/support/ContactSupportPage';
 import { PrivacyPolicyModal } from './components/legal/PrivacyPolicyModal';
 import { TermsConditionsModal } from './components/legal/TermsConditionsModal';
+import { RefundPolicyModal } from './components/legal/RefundPolicyModal';
 import { CookingTimerModal } from './components/timer/CookingTimerModal';
 import { TimerFloatingWidget } from './components/timer/TimerFloatingWidget';
 import { AppInstallPrompt } from './components/common/AppInstallPrompt';
@@ -22,6 +23,7 @@ export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'landing' | 'reader' | 'admin' | 'paid' | 'favorites' | 'groceries' | 'contact'>('landing');
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
   const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
+  const [showRefundModal, setShowRefundModal] = useState<boolean>(false);
   const [activeBookSlug, setActiveBookSlug] = useState<string | null>(null);
   const [readerInitialPage, setReaderInitialPage] = useState<number | undefined>(undefined);
   const [books, setBooks] = useState<Book[]>([]);
@@ -76,6 +78,8 @@ export const App: React.FC = () => {
       setShowPrivacyModal(true);
     } else if (viewParam === 'terms') {
       setShowTermsModal(true);
+    } else if (viewParam === 'refund') {
+      setShowRefundModal(true);
     } else if (bookParam) {
       setActiveBookSlug(bookParam);
       setCurrentView('reader');
@@ -173,6 +177,8 @@ export const App: React.FC = () => {
       setShowPrivacyModal(true);
     } else if (view === 'terms') {
       setShowTermsModal(true);
+    } else if (view === 'refund') {
+      setShowRefundModal(true);
     } else if (view === 'reader' && slug) {
       handleOpenReader(slug);
     } else {
@@ -295,6 +301,11 @@ export const App: React.FC = () => {
       <TermsConditionsModal
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
+      />
+
+      <RefundPolicyModal
+        isOpen={showRefundModal}
+        onClose={() => setShowRefundModal(false)}
       />
 
       {/* 10-Second Web App Download & Install Prompt */}

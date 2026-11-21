@@ -64,13 +64,21 @@ export const Footer: React.FC = () => {
               </a>
             </div>
 
-            <div className="flex items-center gap-3 text-[11px] text-[#8e8578]">
+            <div className="flex items-center gap-3 text-[11px] text-[#8e8578] flex-wrap">
               <a href="?view=privacy" className="hover:text-[#dea374] transition-colors underline">
                 Privacy Policy
               </a>
               <span>•</span>
               <a href="?view=terms" className="hover:text-[#dea374] transition-colors underline">
                 Terms &amp; Conditions
+              </a>
+              <span>•</span>
+              <a href="?view=refund" className="hover:text-[#dea374] transition-colors underline">
+                Refund &amp; Return Policy
+              </a>
+              <span>•</span>
+              <a href="?view=refund" className="hover:text-[#dea374] transition-colors underline">
+                Digital Delivery ($0 Shipping)
               </a>
             </div>
           </div>
