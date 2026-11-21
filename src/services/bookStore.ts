@@ -86,6 +86,14 @@ class BookStore {
           }
         });
 
+        // Deduplicate books by slug so no book ever appears twice
+        const seenSlugs = new Set<string>();
+        this.books = this.books.filter((b) => {
+          if (seenSlugs.has(b.slug)) return false;
+          seenSlugs.add(b.slug);
+          return true;
+        });
+
         this.saveBooksToStorage();
       } else {
         this.books = INITIAL_BOOKS.map((b) => ({ ...b, likesCount: 0 }));
@@ -97,12 +105,12 @@ class BookStore {
         if (idbBooks && idbBooks.length > 0) {
           let updated = false;
           idbBooks.forEach((idbBook) => {
-            const exists = this.books.some((b) => b.id === idbBook.id);
+            const exists = this.books.some((b) => b.id === idbBook.id || b.slug === idbBook.slug);
             if (!exists) {
               this.books.push({ ...idbBook, likesCount: 0 });
               updated = true;
             } else {
-              const idx = this.books.findIndex((b) => b.id === idbBook.id);
+              const idx = this.books.findIndex((b) => b.id === idbBook.id || b.slug === idbBook.slug);
               if (idx >= 0) {
                 this.books[idx] = { ...this.books[idx], ...idbBook, likesCount: 0 };
                 updated = true;
@@ -110,6 +118,12 @@ class BookStore {
             }
           });
           if (updated) {
+            const seenSlugs = new Set<string>();
+            this.books = this.books.filter((b) => {
+              if (seenSlugs.has(b.slug)) return false;
+              seenSlugs.add(b.slug);
+              return true;
+            });
             this.saveBooksToStorage();
             this.notifyListeners();
           }
@@ -222,7 +236,12 @@ class BookStore {
   }
 
   public getBooks(): Book[] {
-    return [...this.books];
+    const seen = new Set<string>();
+    return this.books.filter((b) => {
+      if (seen.has(b.slug)) return false;
+      seen.add(b.slug);
+      return true;
+    });
   }
 
   public getBookById(id: string): Book | undefined {
