@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Sparkles,
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { currencyStore, CurrencyCode } from '../../services/currencyStore';
 
 interface HeaderProps {
@@ -27,8 +28,25 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [currency, setCurrency] = useState<CurrencyCode>(currencyStore.getCurrency());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   useEffect(() => {
+    const isCapacitorNative =
+      Capacitor.isNativePlatform() ||
+      (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor !== undefined ||
+      window.location.protocol === 'capacitor:';
+
+    const isStandalonePWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+
+    const alreadyDownloaded =
+      localStorage.getItem('apk_already_downloaded_v1') === 'true';
+
+    if (isCapacitorNative || isStandalonePWA || alreadyDownloaded) {
+      setIsAppInstalled(true);
+    }
+
     return currencyStore.subscribe((cur) => {
       setCurrency(cur);
     });
@@ -264,18 +282,24 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* Android Direct APK Download Button in Mobile Menu */}
-          <div className="pb-2">
-            <a
-              href="https://pub-152f26d662d94267bac96bce4bdcd35b.r2.dev/apps/The_Recipe_Vault_Co.apk"
-              download="The_Recipe_Vault_Co.apk"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold bg-[#cf7b3e]/20 text-[#dea374] border border-[#cf7b3e]/40 hover:bg-[#cf7b3e]/30 transition-all active:scale-95 shadow-sm"
-            >
-              <Sparkles className="w-4 h-4 text-[#cf7b3e]" />
-              <span>Download Android App (.apk)</span>
-            </a>
-          </div>
+          {/* Android Direct APK Download Button in Mobile Menu (Hidden if already in native app or already downloaded) */}
+          {!isAppInstalled && (
+            <div className="pb-2">
+              <a
+                href="https://pub-152f26d662d94267bac96bce4bdcd35b.r2.dev/apps/The_Recipe_Vault_Co.apk"
+                download="The_Recipe_Vault_Co.apk"
+                onClick={() => {
+                  localStorage.setItem('apk_already_downloaded_v1', 'true');
+                  setIsAppInstalled(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold bg-[#cf7b3e]/20 text-[#dea374] border border-[#cf7b3e]/40 hover:bg-[#cf7b3e]/30 transition-all active:scale-95 shadow-sm"
+              >
+                <Sparkles className="w-4 h-4 text-[#cf7b3e]" />
+                <span>Download Android App (.apk)</span>
+              </a>
+            </div>
+          )}
 
           <div className="pt-2 border-t border-[#231f1a] flex items-center justify-between text-xs text-[#9c9388] px-1">
             <a

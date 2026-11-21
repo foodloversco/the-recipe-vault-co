@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Smartphone, Sparkles, Check, Share, ShieldCheck } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 export const AppInstallPrompt: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -8,11 +9,21 @@ export const AppInstallPrompt: React.FC = () => {
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
   useEffect(() => {
-    // Check if running inside standalone Capacitor native app
-    if (
+    // Check if running inside standalone Capacitor native app, PWA, or if APK was already downloaded
+    const isCapacitorNative =
+      Capacitor.isNativePlatform() ||
+      (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor !== undefined ||
+      window.location.protocol === 'capacitor:' ||
+      (window.location.hostname === 'localhost' && !window.location.port);
+
+    const isStandalonePWA =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true
-    ) {
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+
+    const alreadyDownloaded =
+      localStorage.getItem('apk_already_downloaded_v1') === 'true';
+
+    if (isCapacitorNative || isStandalonePWA || alreadyDownloaded) {
       setIsInstalled(true);
       return;
     }
@@ -25,7 +36,8 @@ export const AppInstallPrompt: React.FC = () => {
     // 10-Second Timer requested by user: triggers prompt after 10 seconds of browsing
     const timer = setTimeout(() => {
       const dismissed = sessionStorage.getItem('apk_install_dismissed_v1');
-      if (!dismissed) {
+      const downloaded = localStorage.getItem('apk_already_downloaded_v1') === 'true';
+      if (!dismissed && !downloaded) {
         setIsVisible(true);
       }
     }, 10000);
@@ -38,6 +50,12 @@ export const AppInstallPrompt: React.FC = () => {
   const handleDismiss = () => {
     setIsVisible(false);
     sessionStorage.setItem('apk_install_dismissed_v1', 'true');
+  };
+
+  const handleDownloadClick = () => {
+    localStorage.setItem('apk_already_downloaded_v1', 'true');
+    setIsInstalled(true);
+    setIsVisible(false);
   };
 
   if (!isVisible || isInstalled) return null;
@@ -122,7 +140,7 @@ export const AppInstallPrompt: React.FC = () => {
             <a
               href="https://pub-152f26d662d94267bac96bce4bdcd35b.r2.dev/apps/The_Recipe_Vault_Co.apk"
               download="The_Recipe_Vault_Co.apk"
-              onClick={handleDismiss}
+              onClick={handleDownloadClick}
               className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#cf7b3e]/30 transition-all flex items-center justify-center gap-2"
             >
               <Download className="w-4 h-4" />
