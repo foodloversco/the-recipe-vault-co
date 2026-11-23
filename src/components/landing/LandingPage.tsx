@@ -30,6 +30,7 @@ import {
   ChevronDown,
   Clock,
   ShoppingBag,
+  SendHorizontal,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -162,6 +163,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </section>
       )}
+
+      {/* Clean Customer Service Action Button */}
+      <div className="py-6 px-4 text-center">
+        <a
+          href="https://t.me/RecipeVaultSales_bot"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#181512] hover:bg-[#231e19] border border-[#382f25] hover:border-sky-500/50 text-xs font-semibold text-[#c7beaf] hover:text-white transition-all shadow-md group"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Customer Service:</span>
+          <span className="text-sky-400 font-bold group-hover:underline flex items-center gap-1">
+            <SendHorizontal className="w-3.5 h-3.5" />
+            <span>Chat on Telegram</span>
+          </span>
+        </a>
+      </div>
 
       {/* Book Inspect & Full Details Modal (When card or Inspect is clicked) */}
       {inspectedBook && (

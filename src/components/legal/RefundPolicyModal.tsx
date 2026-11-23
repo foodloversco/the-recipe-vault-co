@@ -87,11 +87,11 @@ export const RefundPolicyModal: React.FC<RefundPolicyModalProps> = ({
               <span>3. How to Request a Refund or Support</span>
             </h3>
             <p>
-              To request assistance or a refund, simply send an email or WhatsApp message with your PayPal transaction ID or the email address used at checkout:
+              To request assistance or a refund, simply send an email or Telegram message with your PayPal transaction ID or the email address used at checkout:
             </p>
             <div className="bg-[#12100e] p-4 rounded-xl border border-[#2b241c] space-y-1.5 text-xs text-white">
               <p><strong>Support Email:</strong> <a href="mailto:jraysoc05@gmail.com" className="text-[#dea374] underline">jraysoc05@gmail.com</a></p>
-              <p><strong>WhatsApp Support:</strong> <a href="https://api.whatsapp.com/send?phone=27843441313" target="_blank" rel="noreferrer" className="text-emerald-400 underline">+27 84 344 1313</a></p>
+              <p><strong>Telegram Customer Service:</strong> <a href="https://t.me/RecipeVaultSales_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline">@RecipeVaultSales_bot</a></p>
               <p><strong>Response Time:</strong> Within 12 to 24 hours</p>
             </div>
             <p className="text-[11px] text-[#8e8578]">

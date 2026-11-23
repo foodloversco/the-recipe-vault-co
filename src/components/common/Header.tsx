@@ -7,7 +7,7 @@ import {
   ShoppingBag,
   Menu,
   X,
-  MessageCircle,
+  SendHorizontal,
   Sparkles,
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
@@ -186,6 +186,18 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Groceries</span>
             </button>
 
+            {/* Contact Us Button */}
+            <button
+              onClick={() => handleNavClick('contact')}
+              className={`px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-all ${
+                currentView === 'contact'
+                  ? 'bg-[#cf7b3e] text-white shadow-md'
+                  : 'text-[#c2bcaf] hover:text-white hover:bg-[#1e1c19]'
+              }`}
+            >
+              Contact Us
+            </button>
+
             {/* Admin Portal Button */}
             {currentView === 'admin' && (
               <button
@@ -303,14 +315,21 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="pt-2 border-t border-[#231f1a] flex items-center justify-between text-xs text-[#9c9388] px-1">
             <a
-              href="https://api.whatsapp.com/send?phone=27843441313&text=Hi%20The%20Recipe%20Vault%20Co%20Support%2C%20I%20have%20a%20question%20or%20need%20help"
+              href="https://t.me/RecipeVaultSales_bot"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold py-1"
+              className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300 font-semibold py-1"
             >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>WhatsApp VIP Support</span>
+              <SendHorizontal className="w-3.5 h-3.5" />
+              <span>Customer Service (Telegram)</span>
             </a>
+
+            <button
+              onClick={() => handleNavClick('contact')}
+              className="flex items-center gap-1 text-[#dea374] font-semibold py-1"
+            >
+              <span>Contact Us</span>
+            </button>
 
             {currentView === 'admin' && (
               <button

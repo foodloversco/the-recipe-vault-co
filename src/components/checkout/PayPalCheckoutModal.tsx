@@ -20,7 +20,7 @@ import {
   FileCheck,
   Tag,
   Check,
-  MessageCircle,
+  SendHorizontal,
   Smartphone
 } from 'lucide-react';
 
@@ -437,15 +437,13 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                           <span className="text-amber-300 font-mono font-bold text-xs">{paymentRefCode}</span>
                         </div>
                         <a
-                          href={`https://api.whatsapp.com/send?phone=27843441313&text=${encodeURIComponent(
-                            `Hi Recipe Vault! I have transferred R20 on Capitec for ${item.title}. My reference is ${paymentRefCode} and email is ${buyerEmail || '[my email]'}.`
-                          )}`}
+                          href="https://t.me/RecipeVaultSales_bot"
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all"
+                          className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all"
                         >
-                          <MessageCircle className="w-3 h-3" />
-                          <span>WhatsApp Proof</span>
+                          <SendHorizontal className="w-3 h-3" />
+                          <span>Telegram Proof</span>
                         </a>
                       </div>
                     </div>

@@ -57,7 +57,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
               The Recipe Vault Co. ("we," "our," or "us") provides collectible digital cookbook collections, grocery checklists, and culinary flip readers. We are committed to protecting your personal data in strict compliance with Google Play Developer Program Policies, the General Data Protection Regulation (GDPR), and the South African Protection of Personal Information Act (POPIA).
             </p>
             <p>
-              Official Developer Contact: <strong>jraysoc05@gmail.com</strong> | WhatsApp Support: <strong>+27 84 344 1313</strong>.
+              Official Developer Contact: <strong>jraysoc05@gmail.com</strong> | Telegram Support: <strong>@RecipeVaultSales_bot</strong>.
             </p>
           </div>
 
@@ -140,7 +140,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             <div className="bg-[#120f0d] p-3.5 rounded-2xl border border-[#2b241c] space-y-1 font-mono text-xs">
               <p className="text-white">The Recipe Vault Co. Support</p>
               <p className="text-[#dea374]">Email: jraysoc05@gmail.com</p>
-              <p className="text-emerald-400">WhatsApp: +27 84 344 1313</p>
+              <p className="text-sky-400">Telegram: @RecipeVaultSales_bot</p>
             </div>
           </div>
         </div>

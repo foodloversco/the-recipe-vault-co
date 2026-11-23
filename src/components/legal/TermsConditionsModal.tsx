@@ -90,7 +90,7 @@ export const TermsConditionsModal: React.FC<TermsConditionsModalProps> = ({
               <span>Pricing, Currencies &amp; Refund Policy</span>
             </h3>
             <p>
-              Prices are clearly listed in US Dollars ($1.00 USD) and South African Rand (R20.00 ZAR). Due to the immediate delivery of digital goods, orders are non-refundable once unlocked; however, if you experience any technical defect, token error, or accidental duplicate payment, contact <strong>jraysoc05@gmail.com</strong> or WhatsApp <strong>+27 84 344 1313</strong> for prompt token replacement or dispute resolution.
+              Prices are clearly listed in US Dollars ($1.00 USD) and South African Rand (R20.00 ZAR). Due to the immediate delivery of digital goods, orders are non-refundable once unlocked; however, if you experience any technical defect, token error, or accidental duplicate payment, contact <strong>jraysoc05@gmail.com</strong> or Telegram <strong>@RecipeVaultSales_bot</strong> for prompt token replacement or dispute resolution.
             </p>
           </div>
 
@@ -125,7 +125,7 @@ export const TermsConditionsModal: React.FC<TermsConditionsModalProps> = ({
             <div className="bg-[#120f0d] p-3.5 rounded-2xl border border-[#2b241c] space-y-1 font-mono text-xs">
               <p className="text-white">The Recipe Vault Co.</p>
               <p className="text-[#dea374]">Support Email: jraysoc05@gmail.com</p>
-              <p className="text-emerald-400">WhatsApp Care: +27 84 344 1313</p>
+              <p className="text-sky-400">Telegram Care: @RecipeVaultSales_bot</p>
             </div>
           </div>
         </div>
