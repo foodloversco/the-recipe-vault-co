@@ -35,6 +35,9 @@ Here are the commands you can use:
 /capitec — How to pay with Capitec / Bank EFT
 /print — How to print your recipes
 /contact — How to reach our team
+🛒 /order — Check your order & unlock key
+📦 /status — Check delivery status
+↩️ /refund — Request a refund
 /help — Show this menu again
 
 Just tap a command or type it below. We are happy to help! 🍳`,
@@ -48,6 +51,9 @@ Tap a command for instant help:
 🏦 /capitec — Pay with Capitec or Bank EFT
 🖨️ /print — Print your recipe cards
 📩 /contact — Talk to our team
+🛒 /order — Check your order & unlock key
+📦 /status — Check delivery status
+↩️ /refund — Request a refund
 ❓ /help — Show this menu
 
 You can also just type your question and we'll reply as soon as possible.`,
@@ -118,6 +124,51 @@ Or email us at: <b>jraysoc05@gmail.com</b>
 
 We usually reply within a few hours. Thank you for your patience! 🙏`,
 
+  order: `🛒 <b>How to Check Your Order</b>
+
+After purchase, your order confirmation is sent by email (check spam too!).
+
+<b>Your order includes:</b>
+• Your unlock key (RV-XXXX) — save this!
+• A link back to our site to access your book
+
+<b>Can't find it?</b>
+1️⃣ Check your spam / junk folder
+2️⃣ Search for "Recipe Vault" in your email
+3️⃣ Email us at jraysoc05@gmail.com with your PayPal transaction ID
+
+We will resend your key within a few hours! Use /restore to unlock with your key.`,
+
+  status: `📦 <b>Order Status</b>
+
+✅ <b>Digital books</b> are delivered <b>instantly</b> after payment is confirmed.
+
+<b>PayPal:</b> Unlocks within seconds of payment
+<b>Capitec/Bank EFT:</b> Unlocks within minutes after we confirm your payment receipt
+
+If your book hasn't unlocked yet:
+1️⃣ Check your unlock key email
+2️⃣ Use /restore to unlock with your key
+3️⃣ Contact us via /contact if still stuck
+
+We are online most of the day and reply quickly! 🙏`,
+
+  refund: `↩️ <b>Refunds & Returns</b>
+
+We offer a <b>satisfaction guarantee</b> on all our digital recipe books.
+
+<b>To request a refund:</b>
+1️⃣ Email jraysoc05@gmail.com within 7 days of purchase
+2️⃣ Include your PayPal transaction ID or Capitec reference
+3️⃣ Tell us briefly why you'd like a refund
+
+We process refunds within 1–2 business days.
+
+📋 You can also read our full refund policy at:
+👉 https://the-recipe-vault-co-six.vercel.app
+
+We want you to be 100% happy! 😊`,
+
   unknown: `🤔 Not sure what you need?
 
 Tap /help to see all available commands, or just type your question and we'll reply shortly.
@@ -174,6 +225,15 @@ export default async function handler(req, res) {
         break;
       case '/contact':
         reply = REPLIES.contact;
+        break;
+      case '/order':
+        reply = REPLIES.order;
+        break;
+      case '/status':
+        reply = REPLIES.status;
+        break;
+      case '/refund':
+        reply = REPLIES.refund;
         break;
       default:
         // Freeform message — generic nudge
