@@ -132,11 +132,13 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
     // 2. Unlock in book store and increment soldCount by +1
     bookStore.unlockItem(item.id, token, true);
 
-    // 3. Real-time Telegram Sales Alert (if configured)
+    // 3. Real-time Telegram Sales Alert (PayPal vs Bank EFT)
+    const paymentMethodLabel = cur === 'ZAR' ? 'Bank (Capitec / Instant EFT)' : 'PayPal';
     telegramService.sendSaleNotification({
       itemTitle: item.title,
       amount: amt,
       currency: cur,
+      paymentMethod: paymentMethodLabel,
       buyerName: name,
       buyerEmail: email,
       unlockToken: token,

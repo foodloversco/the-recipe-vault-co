@@ -112,18 +112,21 @@ class TelegramService {
     itemTitle: string;
     amount: number;
     currency: string;
+    paymentMethod?: string;
     buyerName?: string;
     buyerEmail: string;
     unlockToken: string;
     orderId?: string;
   }): Promise<boolean> {
+    const method = sale.paymentMethod || (sale.currency === 'ZAR' ? 'Bank (Capitec / Instant EFT)' : 'PayPal');
     const text = `🎉 <b>NEW SALE COMPLETED!</b>\n\n` +
       `📖 <b>Book:</b> ${sale.itemTitle}\n` +
       `💰 <b>Amount:</b> ${sale.currency === 'ZAR' ? `R${sale.amount}` : `$${sale.amount.toFixed(2)} USD`}\n` +
+      `💳 <b>Payment:</b> ${method}\n` +
       `👤 <b>Buyer:</b> ${sale.buyerName || 'Valued Chef'} (<code>${sale.buyerEmail}</code>)\n` +
       `🔑 <b>Unlock Key:</b> <code>${sale.unlockToken}</code>\n` +
-      (sale.orderId ? `💳 <b>Order:</b> <code>${sale.orderId}</code>\n` : '') +
-      `\n<i>The Recipe Vault Co. Live Checkout</i>`;
+      (sale.orderId ? `🧾 <b>Reference/TX:</b> <code>${sale.orderId}</code>\n` : '') +
+      `\n<i>The Recipe Vault Co. Live Store</i>`;
     return this.sendMessage(text);
   }
 }
