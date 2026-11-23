@@ -10,7 +10,7 @@ const TELEGRAM_CONFIG_KEY = 'the_recipe_vault_telegram_v1';
 class TelegramService {
   private config: TelegramConfig = {
     botToken: '9002281093:AAH32gRNpbE8CKKMqE6SC3krwDKj-kldm34',
-    chatId: '',
+    chatId: '6920006386',
     username: 'RecipeVaultSales_bot',
     enabled: true,
   };
