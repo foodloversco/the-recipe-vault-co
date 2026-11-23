@@ -7,6 +7,7 @@ import { settingsStore } from '../../services/settingsStore';
 import { promoStore } from '../../services/promoStore';
 import { PromoCode } from '../../types';
 import { currencyStore } from '../../services/currencyStore';
+import { telegramService } from '../../services/telegramService';
 import { 
   X, 
   ShieldCheck, 
@@ -131,7 +132,18 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
     // 2. Unlock in book store and increment soldCount by +1
     bookStore.unlockItem(item.id, token, true);
 
-    // 3. Celebrate
+    // 3. Real-time Telegram Sales Alert (if configured)
+    telegramService.sendSaleNotification({
+      itemTitle: item.title,
+      amount: amt,
+      currency: cur,
+      buyerName: name,
+      buyerEmail: email,
+      unlockToken: token,
+      orderId: paypalTxId || orderId
+    }).catch((err) => console.warn('Telegram notify error:', err));
+
+    // 4. Celebrate
     triggerCelebration();
     setPurchaseComplete(true);
     setIsProcessing(false);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Mail, 
   MessageCircle, 
@@ -10,8 +10,10 @@ import {
   Sparkles,
   HelpCircle,
   FileCheck,
-  ArrowLeft
+  ArrowLeft,
+  SendHorizontal
 } from 'lucide-react';
+import { telegramService } from '../../services/telegramService';
 
 interface ContactSupportPageProps {
   onBackToCatalog: () => void;
@@ -28,10 +30,20 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState('therecipevaultco');
+  const [isSending, setIsSending] = useState(false);
+  const [sentViaTelegram, setSentViaTelegram] = useState(false);
 
   const supportEmail = 'jraysoc05@gmail.com';
   const supportWhatsAppDisplay = '+27 84 344 1313';
   const supportWhatsAppRaw = '27843441313';
+
+  useEffect(() => {
+    const config = telegramService.getConfig();
+    if (config.username) {
+      setTelegramUsername(config.username.replace('@', ''));
+    }
+  }, []);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(supportEmail);
@@ -39,16 +51,23 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({
     setTimeout(() => setCopiedEmail(false), 2500);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !email.trim()) return;
 
-    // Compose mailto as fallback / direct send
-    const subject = encodeURIComponent(`The Recipe Vault Co. Support Request from ${name || 'Customer'}`);
-    const body = encodeURIComponent(
-      `Name: ${name}\nEmail: ${email}\nAccess Token (if any): ${tokenInput}\n\nMessage:\n${message}`
-    );
-    window.open(`mailto:${supportEmail}?subject=${subject}&body=${body}`, '_blank');
+    setIsSending(true);
+    const sentTelegram = await telegramService.sendCustomerSupportInquiry(name, email, tokenInput, message);
+    if (sentTelegram) {
+      setSentViaTelegram(true);
+    } else {
+      // Direct mailto fallback if Telegram bot is not yet configured
+      const subject = encodeURIComponent(`The Recipe Vault Co. Support Request from ${name || 'Customer'}`);
+      const body = encodeURIComponent(
+        `Name: ${name}\nEmail: ${email}\nAccess Token (if any): ${tokenInput}\n\nMessage:\n${message}`
+      );
+      window.open(`mailto:${supportEmail}?subject=${subject}&body=${body}`, '_blank');
+    }
+    setIsSending(false);
     setSubmitted(true);
   };
 
@@ -81,37 +100,37 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({
           </p>
         </div>
 
-        {/* Quick Contact Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Quick Contact Cards Grid (WhatsApp, Telegram & Email) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* WhatsApp Direct VIP Chat */}
-          <div className="bg-[#171411] border border-emerald-500/40 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
-
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#25D366]/20 border border-[#25D366]/60 flex items-center justify-center text-[#25D366] flex-shrink-0 shadow-lg">
-                <MessageCircle className="w-6 h-6" />
+          <div className="bg-[#171411] border border-emerald-500/40 rounded-3xl p-5 space-y-4 shadow-xl relative overflow-hidden group flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#25D366]/20 border border-[#25D366]/60 flex items-center justify-center text-[#25D366] flex-shrink-0 shadow-lg">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    WHATSAPP SUPPORT
+                  </span>
+                  <h3 className="font-serif text-base font-bold text-white mt-0.5">
+                    WhatsApp Chat
+                  </h3>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  FASTEST RESPONSE • WHATSAPP ONLY
-                </span>
-                <h3 className="font-serif text-lg font-bold text-white mt-1">
-                  WhatsApp Direct Chat
-                </h3>
-              </div>
-            </div>
 
-            <p className="text-xs text-[#a8a196] leading-relaxed">
-              Instant 1-on-1 assistance for verified buyers. Ask any question about your book, order receipt, or payment verification directly on WhatsApp.
-            </p>
-
-            <div className="bg-[#12100e] p-3 rounded-2xl border border-[#2b251f] space-y-1">
-              <span className="text-[10px] text-[#8e8578] uppercase font-bold tracking-wider">
-                Official Support Number (WhatsApp Only):
-              </span>
-              <p className="text-sm font-mono font-bold text-emerald-400">
-                {supportWhatsAppDisplay}
+              <p className="text-xs text-[#a8a196] leading-relaxed">
+                Direct phone assistance for verified buyers. Ask questions about orders, recipes, or Capitec proof.
               </p>
+
+              <div className="bg-[#12100e] p-2.5 rounded-2xl border border-[#2b251f]">
+                <span className="text-[9px] text-[#8e8578] uppercase font-bold tracking-wider block">
+                  Official WhatsApp:
+                </span>
+                <p className="text-xs font-mono font-bold text-emerald-400">
+                  {supportWhatsAppDisplay}
+                </p>
+              </div>
             </div>
 
             <a
@@ -120,55 +139,99 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({
               )}`}
               target="_blank"
               rel="noreferrer"
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-[#25D366] hover:bg-[#20ba59] text-white shadow-lg shadow-emerald-950/50 transition-all flex items-center justify-center gap-2 active:scale-95"
+              className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#25D366] hover:bg-[#20ba59] text-white shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Chat on WhatsApp (+27 84 344 1313)</span>
+              <span>Chat on WhatsApp</span>
+            </a>
+          </div>
+
+          {/* Telegram VIP 1-on-1 Concierge */}
+          <div className="bg-[#171411] border border-sky-500/40 rounded-3xl p-5 space-y-4 shadow-xl relative overflow-hidden group flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-sky-500/20 border border-sky-400/60 flex items-center justify-center text-sky-400 flex-shrink-0 shadow-lg">
+                  <SendHorizontal className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-500/30">
+                    INSTANT 1-ON-1 • TELEGRAM
+                  </span>
+                  <h3 className="font-serif text-base font-bold text-white mt-0.5">
+                    Telegram VIP Concierge
+                  </h3>
+                </div>
+              </div>
+
+              <p className="text-xs text-[#a8a196] leading-relaxed">
+                Connect directly with the chef on Telegram. Instant order assistance, unlock keys, and cooking advice.
+              </p>
+
+              <div className="bg-[#12100e] p-2.5 rounded-2xl border border-[#2b251f]">
+                <span className="text-[9px] text-[#8e8578] uppercase font-bold tracking-wider block">
+                  Official Telegram:
+                </span>
+                <p className="text-xs font-mono font-bold text-sky-400">
+                  @{telegramUsername}
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={`https://t.me/${telegramUsername}`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-gradient-to-r from-sky-500 to-blue-600 hover:brightness-110 text-white shadow-lg shadow-sky-950/50 transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            >
+              <SendHorizontal className="w-4 h-4" />
+              <span>Chat on Telegram</span>
             </a>
           </div>
 
           {/* Email Support */}
-          <div className="bg-[#171411] border border-[#382f25] rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl relative overflow-hidden">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#cf7b3e]/20 border border-[#cf7b3e]/60 flex items-center justify-center text-[#dea374] flex-shrink-0 shadow-lg">
-                <Mail className="w-6 h-6" />
+          <div className="bg-[#171411] border border-[#382f25] rounded-3xl p-5 space-y-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#cf7b3e]/20 border border-[#cf7b3e]/60 flex items-center justify-center text-[#dea374] flex-shrink-0 shadow-lg">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-[#dea374] bg-[#29221b] px-2 py-0.5 rounded-full border border-[#cf7b3e]/30">
+                    DIRECT EMAIL
+                  </span>
+                  <h3 className="font-serif text-base font-bold text-white mt-0.5">
+                    Email Support
+                  </h3>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#dea374] bg-[#29221b] px-2 py-0.5 rounded-full border border-[#cf7b3e]/30">
-                  DIRECT EMAIL SUPPORT
-                </span>
-                <h3 className="font-serif text-lg font-bold text-white mt-1">
-                  Email Support Team
-                </h3>
-              </div>
-            </div>
 
-            <p className="text-xs text-[#a8a196] leading-relaxed">
-              Prefer traditional email? Send your transaction ID or query directly to our customer support inbox. We reply within 24 hours.
-            </p>
-
-            <div className="bg-[#12100e] p-3 rounded-2xl border border-[#2b251f] space-y-1">
-              <span className="text-[10px] text-[#8e8578] uppercase font-bold tracking-wider">
-                Support Email Address:
-              </span>
-              <p className="text-sm font-mono font-bold text-[#dea374] truncate">
-                {supportEmail}
+              <p className="text-xs text-[#a8a196] leading-relaxed">
+                Traditional email for accounting, dispute resolution, and general feedback.
               </p>
+
+              <div className="bg-[#12100e] p-2.5 rounded-2xl border border-[#2b251f]">
+                <span className="text-[9px] text-[#8e8578] uppercase font-bold tracking-wider block">
+                  Support Email:
+                </span>
+                <p className="text-xs font-mono font-bold text-[#dea374] truncate">
+                  {supportEmail}
+                </p>
+              </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <a
                 href={`mailto:${supportEmail}?subject=The%20Recipe%20Vault%20Support%20Request`}
-                className="flex-1 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
+                className="flex-1 py-2.5 px-2 rounded-xl font-bold text-xs bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95"
               >
-                <Mail className="w-4 h-4" />
-                <span>Open Email App</span>
+                <Mail className="w-3.5 h-3.5" />
+                <span>Open Email</span>
               </a>
 
               <button
                 type="button"
                 onClick={handleCopyEmail}
-                className="px-3.5 py-3 rounded-xl bg-[#241d17] hover:bg-[#32271e] border border-[#3e3226] text-xs font-semibold text-[#c2bcaf] hover:text-white transition-all"
+                className="px-2.5 py-2.5 rounded-xl bg-[#241d17] hover:bg-[#32271e] border border-[#3e3226] text-xs font-semibold text-[#c2bcaf] hover:text-white transition-all"
                 title="Copy email address"
               >
                 {copiedEmail ? 'Copied ✓' : 'Copy'}
@@ -192,10 +255,18 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({
             <div className="bg-emerald-950/60 border border-emerald-500/50 rounded-2xl p-6 text-center space-y-2">
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
               <h3 className="font-serif font-bold text-white text-base">
-                Support Message Prepared
+                {sentViaTelegram ? 'Message Delivered to Telegram Concierge!' : 'Support Message Prepared'}
               </h3>
               <p className="text-xs text-[#a8a196] max-w-md mx-auto">
-                Your email client was opened to send your inquiry to <strong>{supportEmail}</strong>. If you need immediate assistance, message us on WhatsApp at <strong>{supportWhatsAppDisplay}</strong>.
+                {sentViaTelegram ? (
+                  <>
+                    Your message was transmitted in real time directly to our Telegram support desk. We will respond to <strong>{email}</strong> or on Telegram shortly.
+                  </>
+                ) : (
+                  <>
+                    Your email client was opened to send your inquiry to <strong>{supportEmail}</strong>. If you need immediate assistance, message us on WhatsApp at <strong>{supportWhatsAppDisplay}</strong> or on Telegram at <strong>@{telegramUsername}</strong>.
+                  </>
+                )}
               </p>
             </div>
           ) : (
@@ -259,10 +330,17 @@ export const ContactSupportPage: React.FC<ContactSupportPageProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#cf7b3e]/30 transition-all flex items-center justify-center gap-2"
+                disabled={isSending}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#cf7b3e]/30 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
-                <span>Send Support Message</span>
+                {isSending ? (
+                  <span>Transmitting Priority Message...</span>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Send Support Message (Direct to Telegram &amp; Email)</span>
+                  </>
+                )}
               </button>
             </form>
           )}
