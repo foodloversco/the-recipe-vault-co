@@ -483,6 +483,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     document.body.removeChild(link);
   };
 
+  const handleClearSales = () => {
+    if (window.confirm('Are you sure you want to clear the sales log? This will reset all records and set revenue to $0.00.')) {
+      salesStore.clearAllSales();
+      setSales([]);
+    }
+  };
+
   const totalRevenue = salesStore.getTotalRevenue();
   const nowTime = Date.now();
   const isLockedOut = lockoutUntil > nowTime;
@@ -1119,13 +1126,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                   <span className="text-xs text-[#a39a8e]">Export Accounting Data</span>
                   <p className="text-[11px] text-[#7d756a] mt-0.5">Download full CSV with PayPal TX IDs</p>
                 </div>
-                <button
-                  onClick={handleDownloadSalesCsv}
-                  className="mt-2 py-2 px-3 rounded-xl bg-[#26201b] hover:bg-[#382f27] border border-[#44382d] text-xs font-semibold text-[#dea374] flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Sales CSV</span>
-                </button>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleDownloadSalesCsv}
+                    className="py-2 px-3 rounded-xl bg-[#26201b] hover:bg-[#382f27] border border-[#44382d] text-xs font-semibold text-[#dea374] flex items-center justify-center gap-1.5 transition-all flex-1"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download CSV</span>
+                  </button>
+                  {sales.length > 0 && (
+                    <button
+                      onClick={handleClearSales}
+                      title="Clear sales log / reset demo data"
+                      className="py-2 px-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-xs font-semibold text-rose-300 flex items-center justify-center gap-1 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Clear</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -13,42 +13,18 @@ class SalesStore {
     try {
       const stored = localStorage.getItem(SALES_STORAGE_KEY);
       if (stored) {
-        this.sales = JSON.parse(stored);
-      } else {
-        // Initialize with realistic seed demonstration data
-        this.sales = [
-          {
-            id: 'sale_101',
-            orderId: 'PP-9AK827391L4',
-            paypalTransactionId: 'TX-7HG19283746',
-            buyerEmail: 'sarah.cooks@gmail.com',
-            buyerName: 'Sarah Jenkins',
-            itemType: 'bundle',
-            itemId: 'bundle-master-culinary-library',
-            itemTitle: 'The Master Culinary Vault Library (All 3 Volumes)',
-            amount: 29.99,
-            currency: 'USD',
-            status: 'COMPLETED',
-            createdAt: '2026-11-19T14:22:10.000Z',
-            unlockToken: 'RV-UNLOCK-884920'
-          },
-          {
-            id: 'sale_102',
-            orderId: 'PP-4NM119280Q2',
-            paypalTransactionId: 'TX-2QQ88391024',
-            buyerEmail: 'johan.braaimaster@outlook.com',
-            buyerName: 'Johan van der Merwe',
-            itemType: 'book',
-            itemId: 'vault-vol-01',
-            itemTitle: 'The Authentic Heritage Braai & Open-Flame Collection',
-            amount: 14.99,
-            currency: 'USD',
-            status: 'COMPLETED',
-            createdAt: '2026-11-20T06:15:44.000Z',
-            unlockToken: 'RV-UNLOCK-392019'
-          }
-        ];
+        const parsed: SaleTransaction[] = JSON.parse(stored);
+        // Automatically purge mock/seed demonstration data
+        this.sales = parsed.filter(
+          (s) =>
+            s.id !== 'sale_101' &&
+            s.id !== 'sale_102' &&
+            s.buyerEmail !== 'sarah.cooks@gmail.com' &&
+            s.buyerEmail !== 'johan.braaimaster@outlook.com'
+        );
         this.save();
+      } else {
+        this.sales = [];
       }
     } catch (e) {
       console.error('Failed to load sales store:', e);
@@ -66,6 +42,11 @@ class SalesStore {
 
   public getSales(): SaleTransaction[] {
     return [...this.sales];
+  }
+
+  public clearAllSales(): void {
+    this.sales = [];
+    this.save();
   }
 
   public recordSale(saleData: Omit<SaleTransaction, 'id' | 'createdAt'>): SaleTransaction {
