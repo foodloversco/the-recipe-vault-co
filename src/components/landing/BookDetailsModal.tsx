@@ -243,11 +243,11 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
             <div className="flex items-baseline justify-between px-1">
               <div>
                 <span className="text-2xl font-extrabold text-white">
-                  {currency === 'ZAR' ? 'R20.00' : `$${book.price.toFixed(2)}`}
+                  {currency === 'ZAR' ? `R${Math.round(book.price * 20)}.00` : `$${book.price.toFixed(2)}`}
                 </span>
                 {book.originalPrice && (
                   <span className="text-sm line-through text-[#8e8578] ml-2">
-                    {currency === 'ZAR' ? 'R260.00' : `$${book.originalPrice.toFixed(2)}`}
+                    {currency === 'ZAR' ? `R${Math.round(book.originalPrice * 20)}.00` : `$${book.originalPrice.toFixed(2)}`}
                   </span>
                 )}
               </div>
@@ -282,7 +282,7 @@ export const BookDetailsModal: React.FC<BookDetailsModalProps> = ({
                 className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] hover:brightness-110 text-white text-xs font-bold shadow-lg shadow-[#cf7b3e]/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
               >
                 <CreditCard className="w-4 h-4" />
-                <span>{currency === 'ZAR' ? 'Buy Now (R20)' : `Buy Now ($${book.price.toFixed(2)})`}</span>
+                <span>{currency === 'ZAR' ? `Buy Now (R${Math.round(book.price * 20)})` : `Buy Now ($${book.price.toFixed(2)})`}</span>
               </button>
             </div>
           </div>

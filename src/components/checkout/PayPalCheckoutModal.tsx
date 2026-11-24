@@ -65,7 +65,8 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
   const paypalClientId = settings.paypalClientId || 'test';
 
   const effectivePriceUSD = appliedPromo ? appliedPromo.promoPrice : item.price;
-  const effectivePriceZAR = item.priceZAR ?? 20;
+  const ZAR_RATE = 20; // R20 per $1 USD
+  const effectivePriceZAR = item.priceZAR ?? Math.round(effectivePriceUSD * ZAR_RATE);
   const effectivePrice = paymentCurrency === 'ZAR' ? effectivePriceZAR : effectivePriceUSD;
   const strikethroughPrice = appliedPromo ? appliedPromo.regularPrice : item.originalPrice;
 
@@ -418,7 +419,7 @@ export const PayPalCheckoutModal: React.FC<PayPalCheckoutModalProps> = ({
                           <span>Capitec Bank / Cellphone Payment</span>
                         </span>
                         <span className="text-[10px] font-mono text-emerald-300 font-bold bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                          R20.00 Fixed
+                          R{effectivePriceZAR}.00
                         </span>
                       </div>
 

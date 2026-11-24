@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => currencyStore.setCurrency('ZAR')}
-              title="South Africa: Pay with Capitec / Card in ZAR (R20)"
+              title="South Africa: Pay with Capitec / Card in ZAR"
               className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold transition-all ${
                 currency === 'ZAR'
                   ? 'bg-emerald-700 text-white shadow-md'
@@ -117,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <span className="text-xs sm:text-sm leading-none">🇿🇦</span>
-              <span className="text-[9px] sm:text-[11px] leading-none">R20</span>
+              <span className="text-[9px] sm:text-[11px] leading-none">ZAR</span>
             </button>
           </div>
 
