@@ -78,6 +78,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   const [promos, setPromos] = useState<PromoCode[]>([]);
   
   // Book Upload & Price State
+  const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -251,6 +252,45 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     setCompressedCoverInfo(null);
   };
 
+  // Load existing book into the form for editing
+  const handleEditBook = (book: Book) => {
+    setEditingBookId(book.id);
+    setTitle(book.title);
+    setSlug(book.slug);
+    setSubtitle(book.subtitle || '');
+    setDescription(book.description || '');
+    setPrice(String(book.price));
+    setOriginalPrice(book.originalPrice ? String(book.originalPrice) : '');
+    setInitialSoldCount(String(book.soldCount ?? 0));
+    setRecipeCount(String(book.recipeCount ?? 30));
+    setPreviewLimit(String(book.previewPagesAllowed ?? 5));
+    setCategory(book.category || 'Open-Fire & Grilling');
+    setCoverPreviewUrl(book.coverImage || '');
+    setSelectedCoverFile(null);
+    setSelectedPdf(null);
+    setCompressedCoverInfo(null);
+    setActiveTab('upload');
+    // Scroll to top of form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Cancel editing and reset to blank form
+  const handleCancelEdit = () => {
+    setEditingBookId(null);
+    setTitle('');
+    setSlug('');
+    setSubtitle('');
+    setDescription('');
+    setPrice('14.99');
+    setOriginalPrice('29.99');
+    setInitialSoldCount('48');
+    setRecipeCount('30');
+    setPreviewLimit('5');
+    setCategory('Open-Fire & Grilling');
+    handleRemoveCoverImage();
+    setSelectedPdf(null);
+  };
+
   const handlePdfUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !price) {
@@ -258,9 +298,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
       return;
     }
 
+    const existingBook = editingBookId ? books.find((b) => b.id === editingBookId) : null;
+
     setIsUploading(true);
     let uploadedPdfInfo: { url: string; size: string; name: string } | null = null;
-    let uploadedCoverUrl = coverPreviewUrl || '/assets/images/recipe-card-sample.png';
+    let uploadedCoverUrl = coverPreviewUrl || existingBook?.coverImage || '/assets/images/recipe-card-sample.png';
 
     try {
       if (selectedCoverFile) {
@@ -272,7 +314,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         uploadedPdfInfo = await storageService.uploadPdfFile(selectedPdf, 'books');
       }
 
-      let bookPages: any[] = [];
+      let bookPages: any[] = existingBook?.pages && existingBook.pages.length > 0 ? [...existingBook.pages] : [];
       if (selectedPdf) {
         try {
           const extracted = await extractPagesFromPdfFile(selectedPdf, title);
@@ -307,40 +349,41 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
         bookPages = [coverPage];
       }
 
-      const newBook: Book = {
-        id: `vault-book-${Date.now()}`,
-        slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      const bookToSave: Book = {
+        id: existingBook ? existingBook.id : `vault-book-${Date.now()}`,
+        slug: slug || existingBook?.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         title,
         subtitle: subtitle || '30 Phone-Ready Recipes & Categorized Grocery Checklists',
-        tagline: 'Instant Printable Culinary Library',
+        tagline: existingBook?.tagline || 'Instant Printable Culinary Library',
         description: description || 'Editorial recipe collection curated for phone reading and fireside cooking.',
         coverImage: uploadedCoverUrl,
         price: parseFloat(price) || 14.99,
         originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
-        soldCount: Math.max(0, parseInt(initialSoldCount, 10) || 0),
-        likesCount: 0,
-        recipeCount: parseInt(recipeCount, 10) || 30,
-        previewPagesAllowed: parseInt(previewLimit, 10) || 5,
+        soldCount: initialSoldCount !== undefined && initialSoldCount !== ''
+          ? Math.max(0, parseInt(initialSoldCount, 10) || 0)
+          : (existingBook?.soldCount ?? 0),
+        likesCount: existingBook?.likesCount || 0,
+        recipeCount: parseInt(recipeCount, 10) || existingBook?.recipeCount || 30,
+        previewPagesAllowed: parseInt(previewLimit, 10) || existingBook?.previewPagesAllowed || 5,
         category,
         tags: [category, 'Phone-Ready', 'Grocery Checklists', '9:16 Full Cover'],
-        pdfFileUrl: uploadedPdfInfo?.url,
-        pdfFileName: uploadedPdfInfo?.name || selectedPdf?.name,
-        pdfFileSize: uploadedPdfInfo?.size || '15.0 MB',
+        pdfFileUrl: uploadedPdfInfo?.url || existingBook?.pdfFileUrl,
+        pdfFileName: uploadedPdfInfo?.name || selectedPdf?.name || existingBook?.pdfFileName,
+        pdfFileSize: uploadedPdfInfo?.size || existingBook?.pdfFileSize || '15.0 MB',
         pages: bookPages,
-        createdAt: new Date().toISOString(),
+        createdAt: existingBook?.createdAt || new Date().toISOString(),
       };
 
-      await bookStore.saveBook(newBook);
+      await bookStore.saveBook(bookToSave);
       refreshData();
       setIsUploading(false);
-      setUploadSuccessMsg(`Successfully created book "${title}" with 9:16 full cover & cloud sync!`);
+      setUploadSuccessMsg(
+        existingBook
+          ? `Successfully updated "${title}" and synced live!`
+          : `Successfully created book "${title}" with 9:16 full cover & cloud sync!`
+      );
       // Reset form
-      setTitle('');
-      setSlug('');
-      setSubtitle('');
-      setDescription('');
-      setSelectedPdf(null);
-      handleRemoveCoverImage();
+      handleCancelEdit();
       setTimeout(() => setUploadSuccessMsg(''), 4000);
     } catch (err) {
       console.error(err);
@@ -735,11 +778,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Upload Form */}
             <div className="lg:col-span-2 bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-5 h-5 text-[#dea374]" />
-                <h2 className="font-serif text-lg font-bold text-white">
-                  Upload Digital Booklet & Configure Price
-                </h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#dea374]" />
+                  <h2 className="font-serif text-lg font-bold text-white">
+                    {editingBookId ? `Edit Book: ${title || 'Untitled'}` : 'Upload Digital Booklet & Configure Price'}
+                  </h2>
+                </div>
+                {editingBookId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="text-xs px-3 py-1 rounded-lg bg-[#2d251f] hover:bg-[#3d3229] text-[#c4bcae] border border-[#44372c] transition-all cursor-pointer"
+                  >
+                    Cancel Editing
+                  </button>
+                )}
               </div>
 
               {uploadSuccessMsg && (
@@ -995,14 +1049,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isUploading}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#cf7b3e]/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                  <UploadCloud className="w-4 h-4" />
-                  <span>{isUploading ? 'Publishing Booklet...' : `Publish Booklet at $${price} USD`}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {editingBookId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="w-1/3 py-3 rounded-xl bg-[#26201b] hover:bg-[#332b24] text-[#d6cdc2] font-bold text-xs sm:text-sm border border-[#3d3328] transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={isUploading}
+                    className={`${editingBookId ? 'w-2/3' : 'w-full'} py-3 rounded-xl bg-gradient-to-r from-[#cf7b3e] to-[#b8612b] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#cf7b3e]/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer`}
+                  >
+                    <UploadCloud className="w-4 h-4" />
+                    <span>
+                      {isUploading
+                        ? (editingBookId ? 'Saving Changes...' : 'Publishing Booklet...')
+                        : (editingBookId ? 'Save Changes & Sync Live' : `Publish Booklet at $${price} USD`)}
+                    </span>
+                  </button>
+                </div>
               </form>
             </div>
 
@@ -1017,7 +1086,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                   {books.map((b) => (
                     <div 
                       key={b.id} 
-                      className="bg-[#1f1b17] p-3.5 rounded-2xl border border-[#322a22] space-y-2.5"
+                      className={`p-3.5 rounded-2xl border space-y-2.5 transition-all ${
+                        editingBookId === b.id
+                          ? 'bg-[#291f16] border-[#cf7b3e] shadow-lg shadow-[#cf7b3e]/10'
+                          : 'bg-[#1f1b17] border-[#322a22]'
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 truncate">
@@ -1039,9 +1112,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
 
                         <div className="flex items-center gap-1">
                           <button
+                            onClick={() => handleEditBook(b)}
+                            title="Edit Book Details & Pricing"
+                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-amber-950 text-amber-400 transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => onPreviewBook(b.slug)}
                             title="Preview 3D Flip Book"
-                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-[#3d342b] text-[#dea374]"
+                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-[#3d342b] text-[#dea374] cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -1049,11 +1129,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                             onClick={async () => {
                               if (confirm(`Delete "${b.title}"? This will permanently remove it from Cloudflare R2 cloud, code, and storefront.`)) {
                                 await bookStore.deleteBook(b.id);
+                                if (editingBookId === b.id) handleCancelEdit();
                                 refreshData();
                               }
                             }}
                             title="Delete Book from Cloud & Storefront"
-                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-rose-950 text-rose-400 transition-colors"
+                            className="p-1.5 rounded-lg bg-[#2b251f] hover:bg-rose-950 text-rose-400 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

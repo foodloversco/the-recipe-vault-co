@@ -171,7 +171,24 @@ class BookStore {
     try {
       const cloudBooks = await storageService.fetchBooksManifestFromCloud();
       if (cloudBooks && Array.isArray(cloudBooks) && cloudBooks.length > 0) {
-        this.books = cloudBooks;
+        // Merge cloud books with local books so we never lose rich local pages if cloud book omitted them
+        const merged = cloudBooks.map((cb) => {
+          const local = this.books.find((b) => b.id === cb.id || b.slug === cb.slug);
+          return {
+            ...local,
+            ...cb,
+            pages: cb.pages && cb.pages.length > 0 ? cb.pages : (local?.pages || []),
+          };
+        });
+
+        // Also preserve any local books that aren't in cloud yet
+        this.books.forEach((lb) => {
+          if (!merged.some((m) => m.id === lb.id || m.slug === lb.slug)) {
+            merged.push(lb);
+          }
+        });
+
+        this.books = merged;
         this.saveBooksToStorage();
         this.notifyListeners();
       }
@@ -252,10 +269,29 @@ class BookStore {
     return this.books.find((b) => b.slug === slug || b.id === slug);
   }
 
+  public getCloudSafeBooks(): any[] {
+    return this.books.map((b) => {
+      const isDataPdf = b.pdfFileUrl && b.pdfFileUrl.startsWith('data:');
+      return {
+        ...b,
+        pdfFileUrl: isDataPdf ? undefined : b.pdfFileUrl,
+        pages: (b.pages || []).map((p) => ({
+          ...p,
+          image: p.image && p.image.length > 50000 && p.image.startsWith('data:')
+            ? (b.coverImage && !b.coverImage.startsWith('data:') ? b.coverImage : '')
+            : p.image,
+          rawPdfPageUrl: p.rawPdfPageUrl && p.rawPdfPageUrl.length > 50000 && p.rawPdfPageUrl.startsWith('data:')
+            ? (b.coverImage && !b.coverImage.startsWith('data:') ? b.coverImage : '')
+            : p.rawPdfPageUrl,
+        })),
+      };
+    });
+  }
+
   public async saveBook(book: Book): Promise<void> {
-    const index = this.books.findIndex((b) => b.id === book.id);
+    const index = this.books.findIndex((b) => b.id === book.id || b.slug === book.slug);
     if (index >= 0) {
-      this.books[index] = book;
+      this.books[index] = { ...this.books[index], ...book };
     } else {
       this.books.unshift(book);
     }
@@ -271,8 +307,12 @@ class BookStore {
     this.saveBooksToStorage();
     this.notifyListeners();
 
-    // 3. Sync to Cloudflare R2 cloud so live mode and dev mode always reflect the change
-    storageService.syncBooksManifestToCloud(this.books).catch(() => {});
+    // 3. Sync sanitized catalog to Cloudflare R2 cloud so live mode and dev mode always match
+    try {
+      await storageService.syncBooksManifestToCloud(this.getCloudSafeBooks());
+    } catch (err) {
+      console.warn('Could not sync books manifest to cloud in saveBook:', err);
+    }
   }
 
   public updateBookSoldCount(bookId: string, newCount: number): void {
@@ -281,7 +321,7 @@ class BookStore {
     book.soldCount = Math.max(0, Math.floor(newCount));
     this.saveBooksToStorage();
     this.notifyListeners();
-    storageService.syncBooksManifestToCloud(this.books).catch(() => {});
+    storageService.syncBooksManifestToCloud(this.getCloudSafeBooks()).catch(() => {});
   }
 
   public incrementBookSoldCount(itemId: string): void {
@@ -306,7 +346,7 @@ class BookStore {
     if (changed) {
       this.saveBooksToStorage();
       this.notifyListeners();
-      storageService.syncBooksManifestToCloud(this.books).catch(() => {});
+      storageService.syncBooksManifestToCloud(this.getCloudSafeBooks()).catch(() => {});
     }
   }
 
@@ -332,8 +372,7 @@ class BookStore {
     this.saveBooksToStorage();
     this.saveFavoritesToStorage();
     this.notifyListeners();
-
-    storageService.syncBooksManifestToCloud(this.books).catch(() => {});
+    storageService.syncBooksManifestToCloud(this.getCloudSafeBooks()).catch(() => {});
   }
 
   public getBundles(): Bundle[] {
