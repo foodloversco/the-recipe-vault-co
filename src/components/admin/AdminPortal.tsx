@@ -39,7 +39,8 @@ import {
   Flame,
   ShieldAlert,
   ShieldCheck,
-  LogOut
+  LogOut,
+  RefreshCw
 } from 'lucide-react';
 import { compress916Image } from '../../utils/imageCompressor';
 import { extractPagesFromPdfFile } from '../../utils/pdfPageExtractor';
@@ -73,6 +74,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   const [groceryImportFeedback, setGroceryImportFeedback] = useState<{ text: string; isError: boolean } | null>(null);
   const [adminRecipeLists, setAdminRecipeLists] = useState<RecipeGroceryList[]>(() => groceryStore.getRecipeGroceryLists());
   const [books, setBooks] = useState<Book[]>([]);
+  const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [sales, setSales] = useState<SaleTransaction[]>([]);
   const [promos, setPromos] = useState<PromoCode[]>([]);
@@ -148,6 +150,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
     setSupabaseKey(currentSettings.supabaseAnonKey || '');
     setVercelLiveUrl(currentSettings.vercelLiveUrl || '');
     setHybridUpdateMode(currentSettings.hybridUpdateMode || 'both');
+
+    const unsubscribe = bookStore.subscribe(() => {
+      refreshData();
+    });
+
+    // Explicitly pull from Cloudflare R2 on admin load to ensure all published books appear
+    bookStore.pullFromCloud().catch(() => {});
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const refreshData = () => {
@@ -1078,9 +1091,26 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
             {/* Existing Books List */}
             <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6 flex flex-col justify-between">
               <div>
-                <h3 className="font-serif text-base font-bold text-white mb-3">
-                  Current Published Books ({books.length})
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-serif text-base font-bold text-white">
+                    Current Published Books ({books.length})
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsSyncingCloud(true);
+                      await bookStore.pullFromCloud();
+                      refreshData();
+                      setIsSyncingCloud(false);
+                    }}
+                    disabled={isSyncingCloud}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-[#251d16] hover:bg-[#34271c] text-[#dea374] border border-[#cf7b3e]/40 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                    title="Fetch and sync all published books directly from Cloudflare R2 cloud"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingCloud ? 'Syncing...' : 'Sync Cloud'}</span>
+                  </button>
+                </div>
 
                 <div className="space-y-3 overflow-y-auto max-h-[500px] pr-1">
                   {books.map((b) => (

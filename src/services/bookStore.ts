@@ -226,6 +226,9 @@ class BookStore {
             image: p.image && p.image.length > 50000 && p.image.startsWith('data:')
               ? (b.coverImage || '')
               : p.image,
+            rawPdfPageUrl: p.rawPdfPageUrl && p.rawPdfPageUrl.length > 50000 && p.rawPdfPageUrl.startsWith('data:')
+              ? (b.coverImage || '')
+              : p.rawPdfPageUrl,
           })),
         };
       });

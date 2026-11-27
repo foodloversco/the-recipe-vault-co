@@ -67,7 +67,9 @@ export const CoverCarouselSection: React.FC<CoverCarouselSectionProps> = ({
           <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
             {books.map((book, bIdx) => {
               const isSelected = bIdx === activeIndex;
-              const shortTitle = book.title.includes('Series 2')
+              const shortTitle = book.title.includes('Series 3')
+                ? 'Series 3'
+                : book.title.includes('Series 2')
                 ? 'Series 2 (New)'
                 : book.title.includes('Series 1')
                 ? 'Series 1'
