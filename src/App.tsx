@@ -56,6 +56,20 @@ export const App: React.FC = () => {
       console.log('Purchases, reviews, and bonus keys reset for test mode.');
     }
 
+    // Auto-catch Pinterest OAuth code redirect
+    const pinOAuthCode = urlParams.get('code');
+    if (pinOAuthCode) {
+      fetch(`/api/pinterest-auth?code=${pinOAuthCode}&redirect_uri=${encodeURIComponent(window.location.origin + '/')}&json=true`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.access_token) {
+            localStorage.setItem('trv_pinterest_token', data.access_token);
+            alert('✓ Pinterest connected successfully with Pin & Board write permissions! Auto-posting active.');
+          }
+        })
+        .catch(() => {});
+    }
+
     refreshData();
 
     // Check URL parameters & pathname for direct navigation: /admin, ?book=slug, or ?view=admin/paid/favorites/groceries

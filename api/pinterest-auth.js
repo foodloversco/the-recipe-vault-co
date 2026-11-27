@@ -71,6 +71,11 @@ export default async function handler(req, res) {
       });
     }
 
+    // If client requested JSON or query param has json=true
+    if (req.headers.accept?.includes('application/json') || req.query.json === 'true') {
+      return res.status(200).json({ ok: true, ...data });
+    }
+
     return res.status(200).send(`
       <!DOCTYPE html>
       <html>
