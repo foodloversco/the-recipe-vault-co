@@ -135,6 +135,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
   const [hybridUpdateMode, setHybridUpdateMode] = useState<'both' | 'cloud-only' | 'offline-only'>('both');
   const [storageSavedMsg, setStorageSavedMsg] = useState('');
 
+  // Pinterest Automation state
+  const [pinterestAppId, setPinterestAppId] = useState(() => localStorage.getItem('trv_pinterest_app_id') || '');
+  const [pinterestAppSecret, setPinterestAppSecret] = useState(() => localStorage.getItem('trv_pinterest_app_secret') || 'a69acab719554684929607256a9d83a637da9b4d');
+  const [pinterestToken, setPinterestToken] = useState(() => localStorage.getItem('trv_pinterest_token') || '');
+  const [isPostingPin, setIsPostingPin] = useState(false);
+  const [pinPostFeedback, setPinPostFeedback] = useState<string | null>(null);
+
   useEffect(() => {
     refreshData();
     const currentSettings = settingsStore.getSettings();
@@ -2161,6 +2168,179 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToApp, onPreview
                       Save Hybrid Sync Settings
                     </button>
                   </form>
+                </div>
+              </div>
+            </div>
+
+            {/* Pinterest Automated Poster & Cron Hub */}
+            <div className="bg-[#181614] border border-[#2c2620] rounded-3xl p-6">
+              <div className="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-[#29221b]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-red-950/80 border border-red-500/30 flex items-center justify-center text-red-400 font-bold text-sm">
+                    P
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-base font-bold text-white flex items-center gap-2">
+                      Pinterest Auto-Poster API &amp; Cron Hub
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/30">
+                        5x Daily Active
+                      </span>
+                    </h3>
+                    <p className="text-xs text-[#a8a196]">
+                      Automatically publishes high-converting recipe cards directly to your Pinterest boards 5 times a day.
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href="https://developers.pinterest.com/apps/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-[#251d16] hover:bg-[#34271c] border border-[#cf7b3e]/40 text-xs font-semibold text-[#dea374] flex items-center gap-1.5 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Pinterest Developer Portal</span>
+                </a>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="p-3 bg-[#13110f] border border-[#29231c] rounded-xl text-xs">
+                  <span className="text-[#8e8578] block text-[10px] uppercase font-bold tracking-wider mb-1">Schedule Engine</span>
+                  <p className="font-bold text-white">Vercel Automated Cron</p>
+                  <p className="text-[11px] text-[#dea374] mt-0.5">08:00, 11:00, 14:00, 17:00, 20:00 SAST</p>
+                </div>
+                <div className="p-3 bg-[#13110f] border border-[#29231c] rounded-xl text-xs">
+                  <span className="text-[#8e8578] block text-[10px] uppercase font-bold tracking-wider mb-1">Queue &amp; Master Deck</span>
+                  <p className="font-bold text-white">90 Open-Loop Recipe Pins</p>
+                  <p className="text-[11px] text-emerald-400 mt-0.5">50% Click Trigger Badged</p>
+                </div>
+                <div className="p-3 bg-[#13110f] border border-[#29231c] rounded-xl text-xs">
+                  <span className="text-[#8e8578] block text-[10px] uppercase font-bold tracking-wider mb-1">Notifications</span>
+                  <p className="font-bold text-white">Telegram Owner Bot</p>
+                  <p className="text-[11px] text-[#dea374] mt-0.5">Instant phone alerts on each post</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                      Pinterest App ID (Client ID)
+                    </label>
+                    <input
+                      type="text"
+                      value={pinterestAppId}
+                      onChange={(e) => {
+                        setPinterestAppId(e.target.value);
+                        localStorage.setItem('trv_pinterest_app_id', e.target.value);
+                      }}
+                      placeholder="e.g. 1508219"
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#c4bcae] mb-1">
+                      Pinterest App Secret Key
+                    </label>
+                    <input
+                      type="password"
+                      value={pinterestAppSecret}
+                      onChange={(e) => {
+                        setPinterestAppSecret(e.target.value);
+                        localStorage.setItem('trv_pinterest_app_secret', e.target.value);
+                      }}
+                      className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-medium text-[#c4bcae]">
+                      Pinterest User Access Token (or Trial Access Token)
+                    </label>
+                    <a
+                      href="https://developers.pinterest.com/apps/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-[#dea374] hover:underline"
+                    >
+                      Get Trial Token in Pinterest Dev Portal &rarr;
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={pinterestToken}
+                    onChange={(e) => {
+                      setPinterestToken(e.target.value);
+                      localStorage.setItem('trv_pinterest_token', e.target.value);
+                    }}
+                    placeholder="pina_xxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full bg-[#121110] border border-[#383027] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#cf7b3e]"
+                  />
+                  <p className="text-[10px] text-[#8e8578] mt-1">
+                    Scopes required: <code className="text-[#dea374]">boards:read</code>, <code className="text-[#dea374]">boards:write</code>, <code className="text-[#dea374]">pins:read</code>, <code className="text-[#dea374]">pins:write</code>
+                  </p>
+                </div>
+
+                {pinPostFeedback && (
+                  <div className={`p-3 rounded-xl text-xs ${
+                    pinPostFeedback.startsWith('✓') 
+                      ? 'bg-emerald-950/70 border border-emerald-500/40 text-emerald-300' 
+                      : 'bg-rose-950/70 border border-rose-500/40 text-rose-300'
+                  }`}>
+                    {pinPostFeedback}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={isPostingPin}
+                    onClick={async () => {
+                      if (!pinterestToken) {
+                        setPinPostFeedback('✗ Please enter your Pinterest Access Token first.');
+                        return;
+                      }
+                      setIsPostingPin(true);
+                      setPinPostFeedback(null);
+                      try {
+                        const res = await fetch('/api/pinterest-post', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ token: pinterestToken, action: 'post-next' })
+                        });
+                        const data = await res.json();
+                        if (data.ok) {
+                          setPinPostFeedback(`✓ ${data.message} Telegram notification sent!`);
+                        } else {
+                          setPinPostFeedback(`✗ Error: ${data.error}`);
+                        }
+                      } catch (err: any) {
+                        setPinPostFeedback(`✗ Network error: ${err.message}`);
+                      } finally {
+                        setIsPostingPin(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[#cf7b3e] hover:bg-[#e0894a] text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isPostingPin ? 'animate-spin' : ''}`} />
+                    <span>{isPostingPin ? 'Publishing to Pinterest...' : 'Post Next Pin Now (Test)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('trv_pinterest_app_id', pinterestAppId);
+                      localStorage.setItem('trv_pinterest_app_secret', pinterestAppSecret);
+                      localStorage.setItem('trv_pinterest_token', pinterestToken);
+                      setPinPostFeedback('✓ Pinterest settings saved locally in your browser!');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[#251d16] hover:bg-[#34271c] border border-[#cf7b3e]/40 text-xs font-semibold text-[#dea374] transition-all"
+                  >
+                    Save Credentials
+                  </button>
                 </div>
               </div>
             </div>
