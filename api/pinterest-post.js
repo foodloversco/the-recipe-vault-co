@@ -11,6 +11,19 @@ const APP_SECRET_DEFAULT = 'a69acab719554684929607256a9d83a637da9b4d';
 // Ephemeral index pointer across warm invocations
 let currentPinIndex = 0;
 
+// Smart mapping to user's existing high-performing Pinterest boards
+function resolveBoardName(targetBoard, pinTitle) {
+  const lowerTitle = pinTitle.toLowerCase();
+  if (lowerTitle.includes('potjie') || lowerTitle.includes('oxtail')) {
+    return 'Traditional Potjiekos Recipes';
+  }
+  if (lowerTitle.includes('bread') || lowerTitle.includes('loaf') || lowerTitle.includes('roosterkoek') || 
+      lowerTitle.includes('salad') || lowerTitle.includes('pap tart') || lowerTitle.includes('braaibroodjie')) {
+    return 'Braai Sides, Breads & Summer Salads';
+  }
+  return 'South African Braai Recipes & Ideas';
+}
+
 async function notifyTelegram(message) {
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -143,9 +156,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ ok: false, error: 'Pin not found at index ' + pinIndexToPost });
       }
 
-      // Check / ensure board
+      // Check / ensure board using smart board mapping
+      const mappedBoardName = resolveBoardName(targetPin.board, targetPin.title);
       const boards = await getPinterestBoards(token);
-      const boardId = await ensureBoard(token, targetPin.board, boards);
+      const boardId = await ensureBoard(token, mappedBoardName, boards);
 
       // Create Pin on Pinterest API v5
       const pinRes = await fetch(`${PINTEREST_API}/pins`, {
